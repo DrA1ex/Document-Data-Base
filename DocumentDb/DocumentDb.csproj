@@ -88,6 +88,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Common\ApplicationWorkers.cs" />
     <Compile Include="Common\Extension\WpfWindowExtensions.cs" />
     <Compile Include="Common\Storage\AppConfigurationStorage.cs" />
     <Compile Include="Common\Storage\DataStorage.cs" />

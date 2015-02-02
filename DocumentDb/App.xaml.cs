@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows;
 using DataLayer;
+using DocumentDb.Common;
 
 namespace DocumentDb
 {
@@ -17,6 +18,8 @@ namespace DocumentDb
             }
 
             Database.SetInitializer(new MigrateDatabaseToLatestVersion<DdbContext, DataLayer.Migrations.Configuration>());
+            ApplicationWorkers.DirectoryMonitor.Update();
+            ApplicationWorkers.DocumentParser.Start();
         }
     }
 }
