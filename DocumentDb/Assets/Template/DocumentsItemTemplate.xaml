@@ -70,11 +70,11 @@
             <mui:BBCodeBlock Grid.Row="1" Grid.Column="1" Margin="6" VerticalAlignment="Center"
                              FontSize="22"
                              BBCode="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}}"
-                             TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis" />
+                             TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"/>
 
             <mui:BBCodeBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding FtsCaptures}"
                              TextAlignment="Justify" Margin="6"
-                             Visibility="{Binding FtsCaptures, Converter={StaticResource StringEmptyToVisibility}}" />
+                             Visibility="{Binding FtsCaptures, Converter={StaticResource StringEmptyToVisibility}}"/>
 
             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
                 <Grid.Resources>

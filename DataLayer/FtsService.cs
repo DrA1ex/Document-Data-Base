@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Lucene.Net.Analysis.Ru;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.QueryParsers;
 using Lucene.Net.Search;
+using Lucene.Net.Search.Highlight;
 using Lucene.Net.Store;
 using DocumentData = DataLayer.Model.Document;
 using Version = Lucene.Net.Util.Version;
@@ -15,8 +17,10 @@ namespace DataLayer
 {
     public static class FtsService
     {
+        public static readonly string[] HighlightTags = { "[color=red][b]", "[/b][/color]" };
         private static readonly string LuceneDir = Path.Combine(Environment.CurrentDirectory, "data", "lucene_index");
         private static FSDirectory _directoryTemp;
+        private static readonly RussianAnalyzer Analyzer = new RussianAnalyzer(Version.LUCENE_30);
 
         private static FSDirectory Directory
         {
@@ -47,12 +51,10 @@ namespace DataLayer
             var doc = new Document();
 
             doc.Add(new Field("Id", data.Id.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
-            doc.Add(new Field("Name", Path.GetFileNameWithoutExtension(data.Name), Field.Store.YES, Field.Index.ANALYZED));
+            doc.Add(new Field("Name", data.Name, Field.Store.YES, Field.Index.ANALYZED));
             doc.Add(new Field("Content", documentContent, Field.Store.YES, Field.Index.ANALYZED));
 
             writer.AddDocument(doc);
-
-            data.Cached = true;
         }
 
         public static void AddUpdateLuceneIndex(DocumentData documentData, string documentContent)
@@ -111,25 +113,28 @@ namespace DataLayer
             }
         }
 
-        private static DocumentData MapLuceneDocumentToData(Document doc)
+        private static DocumentData MapLuceneDocumentToData(Document doc, Highlighter highlighter)
         {
+            var id = Convert.ToInt64(doc.Get("Id"));
+            var name = doc.Get("Name");
+            var content = doc.Get("Content");
+
             return new DocumentData
                    {
-                       Id = Convert.ToInt64(doc.Get("Id")),
-                       Name = doc.Get("Name"),
-                       FtsCaptures = doc.Get("Content")
+                       Id = id,
+                       Name = highlighter.GetBestFragment(Analyzer, "Name", name) ?? name,
+                       FtsCaptures = highlighter.GetBestFragment(Analyzer, "Content", content) ?? String.Join(" ", content.Split(' ').Take(10) + "...")
                    };
         }
 
-        private static IEnumerable<DocumentData> MapLuceneToDataList(IEnumerable<Document> hits)
+        private static IEnumerable<DocumentData> MapLuceneToDataList(IEnumerable<Document> hits, Highlighter highlighter)
         {
-            return hits.Select(MapLuceneDocumentToData).ToList();
+            return hits.Select(c => MapLuceneDocumentToData(c, highlighter)).ToList();
         }
 
-        private static IEnumerable<DocumentData> MapLuceneToDataList(IEnumerable<ScoreDoc> hits,
-            IndexSearcher searcher)
+        private static IEnumerable<DocumentData> MapLuceneToDataList(IEnumerable<ScoreDoc> hits, IndexSearcher searcher, Highlighter highlighter)
         {
-            return hits.Select(hit => MapLuceneDocumentToData(searcher.Doc(hit.Doc))).ToList();
+            return hits.Select(hit => MapLuceneDocumentToData(searcher.Doc(hit.Doc), highlighter)).ToList();
         }
 
         private static Query ParseQuery(string searchQuery, QueryParser parser)
@@ -156,27 +161,41 @@ namespace DataLayer
             using(var searcher = new IndexSearcher(Directory, false))
             {
                 const int hitsLimit = 1000;
-                var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-
-                if(!string.IsNullOrEmpty(searchField))
+                var searchFildIsEmpty = string.IsNullOrEmpty(searchField);
+                QueryParser parser;
+                if(!searchFildIsEmpty)
                 {
-                    var parser = new QueryParser(Version.LUCENE_30, searchField, analyzer);
-                    var query = ParseQuery(searchQuery, parser);
+                    parser = new QueryParser(Version.LUCENE_30, searchField, Analyzer);
+                }
+                else
+                {
+                    parser = new MultiFieldQueryParser
+                        (Version.LUCENE_30, new[] { "Id", "Name", "Content" }, Analyzer);
+                }
+
+                var query = ParseQuery(searchQuery, parser);
+                var scorer = new QueryScorer(query);
+                var formatter = new SimpleHTMLFormatter(HighlightTags[0], HighlightTags[1]);
+                var highlighter = new Highlighter(formatter, scorer)
+                                  {
+                                      TextFragmenter = new SimpleSpanFragmenter(scorer, 250),
+                                      MaxDocCharsToAnalyze = int.MaxValue
+                                  };
+
+                if(!searchFildIsEmpty)
+                {
                     var hits = searcher.Search(query, hitsLimit).ScoreDocs;
-                    var results = MapLuceneToDataList(hits, searcher);
-                    analyzer.Close();
+                    var results = MapLuceneToDataList(hits, searcher, highlighter);
+                    Analyzer.Close();
                     searcher.Dispose();
                     return results;
                 }
                 else
                 {
-                    var parser = new MultiFieldQueryParser
-                        (Version.LUCENE_30, new[] { "Id", "Name", "Content" }, analyzer);
-                    var query = ParseQuery(searchQuery, parser);
                     var hits = searcher.Search
                         (query, null, hitsLimit, Sort.RELEVANCE).ScoreDocs;
-                    var results = MapLuceneToDataList(hits, searcher);
-                    analyzer.Close();
+                    var results = MapLuceneToDataList(hits, searcher, highlighter);
+                    Analyzer.Close();
                     searcher.Dispose();
                     return results;
                 }
@@ -219,7 +238,7 @@ namespace DataLayer
             }
             reader.Dispose();
             searcher.Dispose();
-            return MapLuceneToDataList(docs);
+            return MapLuceneToDataList(docs, null);
         }
     }
 }

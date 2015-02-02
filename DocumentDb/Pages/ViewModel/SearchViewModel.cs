@@ -17,6 +17,7 @@ namespace DocumentDb.Pages.ViewModel
 {
     public class SearchViewModel : NotifyPropertyChanged
     {
+        private BaseFolder _baseCatalog;
         private DdbContext _context;
         private IEnumerable<Document> _documents;
         private ObservableCollection<Folder> _folders;
@@ -90,7 +91,14 @@ namespace DocumentDb.Pages.ViewModel
 
         private void OpenFile(Document doc)
         {
-            Process.Start(Path.Combine(doc.ParentFolder.FullPath, doc.Name));
+            var docName = doc.Name;
+            foreach(var highlightTag in FtsService.HighlightTags)
+            {
+                docName = docName.Replace(highlightTag, "");
+            }
+
+            var fileToOpen = Path.Combine(_baseCatalog.FullPath, doc.ParentFolder.FullPath.TrimStart('\\'), docName);
+            Process.Start(fileToOpen);
         }
 
         public void Refresh()
@@ -107,10 +115,10 @@ namespace DocumentDb.Pages.ViewModel
                      {
                          try
                          {
-                             var baseCatalog = Context.BaseFolders
+                             _baseCatalog = Context.BaseFolders
                                  .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
 
-                             if(baseCatalog != null)
+                             if(_baseCatalog != null)
                              {
                                  var docs = FetchDocumentsForClause(SearchString);
 
@@ -122,7 +130,7 @@ namespace DocumentDb.Pages.ViewModel
                                                  folder.Documents = null;
                                                  return folder;
                                              })
-                                     .Where(c => c.FullPath.StartsWith(baseCatalog.FullPath))
+                                     .Where(c => c.FullPath.StartsWith(_baseCatalog.FullPath))
                                      .OrderBy(c => c.FullPath)
                                      .ToList();
 
@@ -136,7 +144,7 @@ namespace DocumentDb.Pages.ViewModel
 
                                      if(folderForDoc.Documents == null)
                                      {
-                                         folderForDoc.FullPath = folderForDoc.FullPath.Replace(baseCatalog.FullPath, "");
+                                         folderForDoc.FullPath = folderForDoc.FullPath.Replace(_baseCatalog.FullPath, "");
                                          folderForDoc.Documents = new List<Document>();
                                      }
 
@@ -162,7 +170,7 @@ namespace DocumentDb.Pages.ViewModel
         {
             if(String.IsNullOrWhiteSpace(clause))
             {
-                return new Document[] { };
+                return new Document[] {};
             }
 
             var docs = FtsService.Search(clause);

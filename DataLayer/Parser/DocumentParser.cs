@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -70,8 +69,8 @@ namespace DataLayer.Parser
         private void ParseDocuments()
         {
             var ct = CancellationTokenSource.Token;
-            var pauseHandles = new[] { ct.WaitHandle, PauseResetEvent };
-            var delayHandles = new[] { ct.WaitHandle, WaitEvent };
+            var pauseHandles = new[] {ct.WaitHandle, PauseResetEvent};
+            var delayHandles = new[] {ct.WaitHandle, WaitEvent};
 
             while(!ct.IsCancellationRequested)
             {
@@ -90,9 +89,19 @@ namespace DataLayer.Parser
                         foreach(var document in docsToParse)
                         {
                             if(ct.IsCancellationRequested || !PauseResetEvent.WaitOne(0))
+                            {
                                 break;
+                            }
 
-                            FtsService.AddUpdateLuceneIndex(document, File.ReadAllText(Path.Combine(document.ParentFolder.FullPath, document.Name)));
+                            try
+                            {
+                                FtsService.AddUpdateLuceneIndex(document, ContentExtractor.GetContent(document));
+                                document.Cached = true;
+                            }
+                            catch(Exception e)
+                            {
+                                Logger.Instance.Error("Cannot add file '{0}' to index: {1}", document.Name, e);
+                            }
                         }
 
                         try
