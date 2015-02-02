@@ -126,11 +126,25 @@ namespace DocumentDb.Pages.ViewModel
                 return new Document[] { };
             }
 
-            return Context.Documents
-                .Include("ParentFolder")
-                .Where(c => c.Name.Contains(clause))
-                .AsNoTracking()
-                .ToArray();
+            var docs = FtsService.Search(clause);
+
+            var result = new List<Document>();
+
+            // ReSharper disable once PossibleMultipleEnumeration
+            foreach(var document in docs)
+            {
+                var existingDocument = Context.Documents
+                    .Include("ParentFolder")
+                    .AsNoTracking()
+                    .Single(c => c.Id == document.Id);
+
+                existingDocument.Name = document.Name;
+                existingDocument.FtsCaptures = document.FtsCaptures;
+
+                result.Add(existingDocument);
+            }
+
+            return result.ToArray();
         }
     }
 }
