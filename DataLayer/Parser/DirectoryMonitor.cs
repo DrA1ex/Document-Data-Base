@@ -20,9 +20,9 @@ namespace DataLayer.Parser
         {
             // ReSharper disable once CoVariantArrayConversion
             Types = ((DocumentType[])Enum.GetValues(typeof(DocumentType)))
-                .Select(c => new {Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c})
+                .Select(c => new { Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c })
                 .Where(c => c.Attribute != null)
-                .Select(c => new {c.Attribute.Extension, c.Value})
+                .Select(c => new { c.Attribute.Extension, c.Value })
                 .ToArray();
         }
 
@@ -35,7 +35,7 @@ namespace DataLayer.Parser
                 var baseDir = ctx.BaseFolders.SingleOrDefault(c => c.FullPath == AbsolutePath);
                 if(baseDir == null)
                 {
-                    baseDir = new BaseFolder {FullPath = AbsolutePath};
+                    baseDir = new BaseFolder { FullPath = AbsolutePath };
                     ctx.BaseFolders.Add(baseDir);
                     ctx.SaveChanges();
                 }
@@ -94,7 +94,7 @@ namespace DataLayer.Parser
 
             ProcessFilesInFolder(ctx, folder);
 
-            string[] directories = {};
+            string[] directories = { };
 
             try
             {
@@ -113,7 +113,7 @@ namespace DataLayer.Parser
 
         private void ProcessFilesInFolder(DdbContext ctx, Folder folder)
         {
-            string[] filesInDirectory = {};
+            string[] filesInDirectory = { };
             try
             {
                 filesInDirectory = Directory.GetFiles(folder.FullPath);
@@ -145,6 +145,7 @@ namespace DataLayer.Parser
                 document = folder.Documents.SingleOrDefault(c => c.Name == Path.GetFileName(fileName));
             }
 
+            var lastEditTime = File.GetLastWriteTime(filePath);
             if(document == null)
             {
                 document = new Document
@@ -153,10 +154,15 @@ namespace DataLayer.Parser
                                Type = fileType,
                                ParentFolder = folder,
                                Cached = false,
-                               LastEditDateTime = File.GetLastWriteTime(filePath)
+                               LastEditDateTime = lastEditTime
                            };
 
                 ctx.Documents.Add(document);
+            }
+            else if(lastEditTime != document.LastEditDateTime)
+            {
+                document.LastEditDateTime = lastEditTime;
+                document.Cached = false;
             }
         }
 
