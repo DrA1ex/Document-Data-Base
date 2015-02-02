@@ -1,11 +1,56 @@
 ﻿<UserControl x:Class="DocumentDb.Pages.Statistics"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             mc:Ignorable="d" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewModel="clr-namespace:DocumentDb.Pages.ViewModel"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance viewModel:StatisticsViewModel}"
              d:DesignHeight="300" d:DesignWidth="300">
     <Grid>
-            
+        <Grid.Resources>
+            <Style TargetType="TextBlock">
+                <Setter Property="Margin" Value="6" />
+            </Style>
+        </Grid.Resources>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Состояние монитора документов" />
+        <TextBlock Grid.Row="0" Grid.Column="1"
+                   Text="{Binding DocumentMonitorState, Converter={StaticResource TypeDescriptionToString}}" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Состояние парсера документов" />
+        <TextBlock Grid.Row="1" Grid.Column="1"
+                   Text="{Binding DocumentParserState, Converter={StaticResource TypeDescriptionToString}}" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Размер поискового индекса" />
+        <TextBlock Grid.Row="2" Grid.Column="1"
+                   Text="{Binding Path=StatisticsModel.FtsIndexSize, StringFormat='{}{0} МБ'}" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Размер файлового индекса" />
+        <TextBlock Grid.Row="3" Grid.Column="1"
+                   Text="{Binding Path=StatisticsModel.DatabaseSize, StringFormat='{}{0} МБ'}" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Количество каталогов в индексе" />
+        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding StatisticsModel.ParsedFoldersCount}" />
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="Количество документов" />
+        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding StatisticsModel.ParsedDocumentsCount}" />
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="Количество документов, доступных для поиска" />
+        <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding StatisticsModel.DocumentsInCacheCount}" />
     </Grid>
 </UserControl>

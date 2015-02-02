@@ -18,7 +18,7 @@ namespace DataLayer
     public static class FtsService
     {
         public static readonly string[] HighlightTags = { "[color=red][b]", "[/b][/color]" };
-        private static readonly string LuceneDir = Path.Combine(Environment.CurrentDirectory, "data", "lucene_index");
+        public static readonly string LuceneDir = Path.Combine(Environment.CurrentDirectory, "data", "lucene_index");
         private static FSDirectory _directoryTemp;
         private static readonly RussianAnalyzer Analyzer = new RussianAnalyzer(Version.LUCENE_30);
 

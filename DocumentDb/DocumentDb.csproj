@@ -195,6 +195,7 @@
       <DependentUpon>Settings.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\ViewModel\SearchViewModel.cs" />
+    <Compile Include="Pages\ViewModel\StatisticsViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

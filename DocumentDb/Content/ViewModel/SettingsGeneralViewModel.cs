@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using Common;
 using DataLayer.Parser;
+using DocumentDb.Common;
 using DocumentDb.Common.Extension;
 using DocumentDb.Common.Storage;
 using FirstFloor.ModernUI.Presentation;
@@ -44,8 +45,8 @@ namespace DocumentDb.Content.ViewModel
             {
                 CurrentDirectory = dialog.SelectedPath;
 
-                var monitor = new DirectoryMonitor(CurrentDirectory);
-                monitor.Update();
+                ApplicationWorkers.DirectoryMonitor.BasePath = CurrentDirectory;
+                ApplicationWorkers.DirectoryMonitor.Update();
             }
         }
     }

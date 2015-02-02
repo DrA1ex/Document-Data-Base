@@ -5,14 +5,19 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Utils;
+using DataLayer.Model;
 
 namespace DataLayer.Parser
 {
     public enum DocumentParserState
     {
+        [Description("Остановлено")]
         Stopped,
+        [Description("Ожидание")]
         Iddle,
+        [Description("Выполняется")]
         Running,
+        [Description("Приостановлено")]
         Paused
     }
 
@@ -69,8 +74,8 @@ namespace DataLayer.Parser
         private void ParseDocuments()
         {
             var ct = CancellationTokenSource.Token;
-            var pauseHandles = new[] {ct.WaitHandle, PauseResetEvent};
-            var delayHandles = new[] {ct.WaitHandle, WaitEvent};
+            var pauseHandles = new[] { ct.WaitHandle, PauseResetEvent };
+            var delayHandles = new[] { ct.WaitHandle, WaitEvent };
 
             while(!ct.IsCancellationRequested)
             {
@@ -83,8 +88,7 @@ namespace DataLayer.Parser
                     {
                         var docsToParse = ctx.Documents
                             .Include("ParentFolder")
-                            .Where(c => c.Cached == false)
-                            .ToArray();
+                            .Where(c => c.Cached == false);
 
                         foreach(var document in docsToParse)
                         {
@@ -97,6 +101,8 @@ namespace DataLayer.Parser
                             {
                                 FtsService.AddUpdateLuceneIndex(document, ContentExtractor.GetContent(document));
                                 document.Cached = true;
+
+                                StatisticsModel.Instance.DocumentsInCacheCount += 1;
                             }
                             catch(Exception e)
                             {
@@ -107,6 +113,7 @@ namespace DataLayer.Parser
                         try
                         {
                             ctx.SaveChanges();
+                            StatisticsModel.Instance.Refresh();
                         }
                         catch(Exception e)
                         {

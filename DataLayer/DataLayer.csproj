@@ -112,6 +112,7 @@
     <Compile Include="Model\Document.cs" />
     <Compile Include="Model\DocumentType.cs" />
     <Compile Include="Model\Folder.cs" />
+    <Compile Include="Model\StatisticsModel.cs" />
     <Compile Include="Parser\ContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\TextContentExtractor.cs" />
     <Compile Include="Parser\DirectoryMonitor.cs" />

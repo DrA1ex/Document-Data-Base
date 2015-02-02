@@ -13,18 +13,22 @@ namespace DataLayer.Parser
 {
     public enum DocumentMonitorState
     {
+        [Description("Ожидание")]
         Idle,
+        [Description("Выполняется")]
         Running
     }
 
     public class DirectoryMonitor : INotifyPropertyChanged
     {
+        private const long DateTimeTicksRound = 10000000;
         private static readonly dynamic[] Types;
+        private string _basePath;
         private DocumentMonitorState _state;
 
         public DirectoryMonitor(string path)
         {
-            AbsolutePath = Path.GetFullPath(path);
+            BasePath = path;
             SynchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext();
         }
 
@@ -50,48 +54,51 @@ namespace DataLayer.Parser
                 .ToArray();
         }
 
-        public string AbsolutePath { get; private set; }
+        public string BasePath
+        {
+            get { return _basePath; }
+            set { _basePath = Path.GetFullPath(value); }
+        }
+
+        private readonly object _syncDummy = new object();
 
         public void Update()
         {
-            if(State == DocumentMonitorState.Running)
-            {
-                return;
-            }
-
             SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
-
-
             Task.Run(() =>
                      {
-                         try
+                         lock(_syncDummy)
                          {
-                             using(var ctx = new DdbContext())
+                             try
                              {
-                                 var baseDir = ctx.BaseFolders.SingleOrDefault(c => c.FullPath == AbsolutePath);
-                                 if(baseDir == null)
+                                 using(var ctx = new DdbContext())
                                  {
-                                     baseDir = new BaseFolder { FullPath = AbsolutePath };
-                                     ctx.BaseFolders.Add(baseDir);
+                                     var baseDir = ctx.BaseFolders.SingleOrDefault(c => c.FullPath == BasePath);
+                                     if(baseDir == null)
+                                     {
+                                         baseDir = new BaseFolder { FullPath = BasePath };
+                                         ctx.BaseFolders.Add(baseDir);
+                                         ctx.SaveChanges();
+                                     }
+
+                                     var directories = Directory.GetDirectories(BasePath);
+                                     foreach(var directory in directories)
+                                     {
+                                         ProcessDirectory(ctx, baseDir, Path.GetFullPath(directory));
+                                     }
+
                                      ctx.SaveChanges();
+                                     StatisticsModel.Instance.Refresh();
                                  }
-
-                                 var directories = Directory.GetDirectories(AbsolutePath);
-                                 foreach(var directory in directories)
-                                 {
-                                     ProcessDirectory(ctx, baseDir, Path.GetFullPath(directory));
-                                 }
-
-                                 ctx.SaveChanges();
                              }
-                         }
-                         catch(Exception e)
-                         {
-                             Logger.Instance.ErrorException("Unable to update directory cache: {0}", e);
-                         }
-                         finally
-                         {
-                             SynchronizationContext.Send(c => State = DocumentMonitorState.Idle, null);
+                             catch(Exception e)
+                             {
+                                 Logger.Instance.ErrorException("Unable to update directory cache: {0}", e);
+                             }
+                             finally
+                             {
+                                 SynchronizationContext.Send(c => State = DocumentMonitorState.Idle, null);
+                             }
                          }
                      });
         }
@@ -104,11 +111,11 @@ namespace DataLayer.Parser
             }
 
             Folder folder;
-            if(parentFolder != null && parentFolder.Folders != null)
+            if(parentFolder != null && parentFolder.Folders != null && parentFolder.Folders.Any())
             {
                 folder = parentFolder.Folders.SingleOrDefault(c => c.FullPath == path);
             }
-            else if(baseFolder.Folders != null)
+            else if(baseFolder.Folders.Any())
             {
                 folder = baseFolder.Folders.SingleOrDefault(c => c.FullPath == path);
             }
@@ -124,6 +131,8 @@ namespace DataLayer.Parser
                              FullPath = path,
                              Label = Path.GetFileName(path)
                          };
+
+                StatisticsModel.Instance.ParsedFoldersCount += 1;
 
                 if(parentFolder == null)
                 {
@@ -203,9 +212,11 @@ namespace DataLayer.Parser
                                LastEditDateTime = lastEditTime
                            };
 
+                StatisticsModel.Instance.ParsedDocumentsCount += 1;
+
                 ctx.Documents.Add(document);
             }
-            else if(lastEditTime != document.LastEditDateTime)
+            else if(lastEditTime.Ticks / DateTimeTicksRound != document.LastEditDateTime.Ticks / DateTimeTicksRound) //SQL Server compact lose precision
             {
                 document.LastEditDateTime = lastEditTime;
                 document.Cached = false;
