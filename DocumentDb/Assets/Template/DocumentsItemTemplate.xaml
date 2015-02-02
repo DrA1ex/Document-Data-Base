@@ -73,7 +73,7 @@
                              TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis" />
 
             <mui:BBCodeBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding FtsCaptures}"
-                             TextAlignment="Justify"
+                             TextAlignment="Justify" Margin="6"
                              Visibility="{Binding FtsCaptures, Converter={StaticResource StringEmptyToVisibility}}" />
 
             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">

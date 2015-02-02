@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModel="clr-namespace:DocumentDb.Pages.ViewModel"
+             xmlns:mui="http://firstfloorsoftware.com/ModernUI"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance viewModel:NavigationViewModel}"
              d:DesignHeight="300" d:DesignWidth="300">
 
@@ -19,21 +20,28 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*" />
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="2*" />
         </Grid.ColumnDefinitions>
 
-        <TreeView SelectedItemChanged="TreeView_OnSelectedItemChanged" Margin="6"
+
+        <Grid Grid.ColumnSpan="3" Margin="6" ZIndex="100500" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibility}}">
+            <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3"/>
+            <mui:ModernProgressRing IsActive="{Binding IsBusy}" Width="80" Height="80"
+                                    Style="{DynamicResource CircleProgressRingStyle}" />
+        </Grid>
+
+        <TreeView Grid.Column="0" SelectedItemChanged="TreeView_OnSelectedItemChanged" Margin="6"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <TreeViewItem Header="Коллекция" ItemsSource="{Binding Folders}"
                           IsExpanded="True" />
         </TreeView>
 
-        <Rectangle Grid.Column="1" Fill="{DynamicResource SeparatorBackground}" Width="1"/>
+        <Rectangle Grid.Column="1" Fill="{DynamicResource SeparatorBackground}" Width="1" />
 
         <ScrollViewer Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemTemplate="{StaticResource DocumentItemTemplate}"
-                      ItemsSource="{Binding Documents}" />
+                          ItemsSource="{Binding Documents}" />
         </ScrollViewer>
     </Grid>
 </UserControl>

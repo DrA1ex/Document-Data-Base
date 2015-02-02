@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Common;
 using DataLayer;
@@ -17,11 +19,28 @@ namespace DocumentDb.Pages.ViewModel
         private DdbContext _context;
         private IEnumerable<Document> _documents;
         private ObservableCollection<Folder> _folders;
+        private bool _isBusy;
         private ICommand _openFileCommand;
+        private SynchronizationContext _synchronizationContext;
 
         public NavigationViewModel()
         {
             Refresh();
+        }
+
+        public bool IsBusy
+        {
+            get { return _isBusy; }
+            set
+            {
+                _isBusy = value;
+                OnPropertyChanged("isBusy");
+            }
+        }
+
+        public SynchronizationContext SynchronizationContext
+        {
+            get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
         }
 
         public DdbContext Context
@@ -61,18 +80,36 @@ namespace DocumentDb.Pages.ViewModel
 
         public void Refresh()
         {
-            var baseCatalog = Context.BaseFolders
-                .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
-
-            if(baseCatalog != null)
+            if(IsBusy)
             {
-                Folders.Clear();
-
-                foreach(var folder in baseCatalog.Folders)
-                {
-                    Folders.Add(folder);
-                }
+                return;
             }
+
+            SynchronizationContext.Send(c => IsBusy = true, null);
+
+
+            Task.Run(() =>
+                     {
+                         try
+                         {
+                             var baseCatalog = Context.BaseFolders
+                                 .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
+
+                             if(baseCatalog != null)
+                             {
+                                 SynchronizationContext.Send(c => Folders.Clear(), null);
+
+                                 foreach(var folder in baseCatalog.Folders)
+                                 {
+                                     SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
+                                 }
+                             }
+                         }
+                         finally
+                         {
+                             SynchronizationContext.Send(c => IsBusy = false, null);
+                         }
+                     });
         }
     }
 }

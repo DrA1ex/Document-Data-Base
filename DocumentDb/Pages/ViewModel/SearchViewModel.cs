@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Data.Entity;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Common;
 using DataLayer;
@@ -19,15 +20,32 @@ namespace DocumentDb.Pages.ViewModel
         private DdbContext _context;
         private IEnumerable<Document> _documents;
         private ObservableCollection<Folder> _folders;
+        private bool _isBusy;
         private ICommand _openFileCommand;
         private ICommand _refreshCommand;
         private string _searchString;
+        private SynchronizationContext _synchronizationContext;
 
         public SearchViewModel()
         {
             Context.Configuration.LazyLoadingEnabled = false;
             Context.Configuration.AutoDetectChangesEnabled = false;
             Context.Configuration.ProxyCreationEnabled = false;
+        }
+
+        public bool IsBusy
+        {
+            get { return _isBusy; }
+            set
+            {
+                _isBusy = value;
+                OnPropertyChanged("isBusy");
+            }
+        }
+
+        public SynchronizationContext SynchronizationContext
+        {
+            get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
         }
 
         public DdbContext Context
@@ -77,46 +95,67 @@ namespace DocumentDb.Pages.ViewModel
 
         public void Refresh()
         {
-            var baseCatalog = Context.BaseFolders
-                .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
-
-            if(baseCatalog != null)
+            if(IsBusy)
             {
-                var docs = FetchDocumentsForClause(SearchString);
-
-                var folders = docs.Select(c => c.ParentFolder)
-                    .GroupBy(c => c.Id)
-                    .Select(c =>
-                            {
-                                var folder = c.First();
-                                folder.Documents = null;
-                                return folder;
-                            })
-                    .Where(c => c.FullPath.StartsWith(baseCatalog.FullPath))
-                    .OrderBy(c => c.FullPath)
-                    .ToList();
-
-                foreach(var doc in docs)
-                {
-                    var folderForDoc = folders.SingleOrDefault(c => c.Id == doc.ParentFolder.Id);
-                    if(folderForDoc == null)
-                        continue;
-
-                    if(folderForDoc.Documents == null)
-                    {
-                        folderForDoc.FullPath = folderForDoc.FullPath.Replace(baseCatalog.FullPath, "");
-                        folderForDoc.Documents = new List<Document>();
-                    }
-
-                    folderForDoc.Documents.Add(doc);
-                }
-
-                Folders.Clear();
-                foreach(var folder in folders)
-                {
-                    Folders.Add(folder);
-                }
+                return;
             }
+
+            SynchronizationContext.Send(c => IsBusy = true, null);
+
+
+            Task.Run(() =>
+                     {
+                         try
+                         {
+                             var baseCatalog = Context.BaseFolders
+                                 .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
+
+                             if(baseCatalog != null)
+                             {
+                                 var docs = FetchDocumentsForClause(SearchString);
+
+                                 var folders = docs.Select(c => c.ParentFolder)
+                                     .GroupBy(c => c.Id)
+                                     .Select(c =>
+                                             {
+                                                 var folder = c.First();
+                                                 folder.Documents = null;
+                                                 return folder;
+                                             })
+                                     .Where(c => c.FullPath.StartsWith(baseCatalog.FullPath))
+                                     .OrderBy(c => c.FullPath)
+                                     .ToList();
+
+                                 foreach(var doc in docs)
+                                 {
+                                     var folderForDoc = folders.SingleOrDefault(c => c.Id == doc.ParentFolder.Id);
+                                     if(folderForDoc == null)
+                                     {
+                                         continue;
+                                     }
+
+                                     if(folderForDoc.Documents == null)
+                                     {
+                                         folderForDoc.FullPath = folderForDoc.FullPath.Replace(baseCatalog.FullPath, "");
+                                         folderForDoc.Documents = new List<Document>();
+                                     }
+
+                                     folderForDoc.Documents.Add(doc);
+                                 }
+
+                                 SynchronizationContext.Send(c => Folders.Clear(), null);
+
+                                 foreach(var folder in folders)
+                                 {
+                                     SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
+                                 }
+                             }
+                         }
+                         finally
+                         {
+                             SynchronizationContext.Send(c => IsBusy = false, null);
+                         }
+                     });
         }
 
         private Document[] FetchDocumentsForClause(string clause)

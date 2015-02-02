@@ -15,6 +15,7 @@
             <converters:DateTimeConverter x:Key="DateTimeConverter"/>
             <converters:TypeDescriptionToString x:Key="TypeDescriptionToString"/>
             <converters:StringEmptyToVisibility x:Key="StringEmptyToVisibility" />
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibility"/>
 
             <PathGeometry x:Key="AppIcon">
                 M25.7,23.9l-2.5-2.5c-0.329-0.329-0.788-0.372-1.165-0.16l-0.284-0.284C22.529,20.007,23,18.801,23,17.5

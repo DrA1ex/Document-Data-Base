@@ -1,20 +1,44 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Common.Utils;
-using DataLayer.Attributes;
 using DataLayer.Model;
+using ExtensionAttribute = DataLayer.Attributes.ExtensionAttribute;
 
 namespace DataLayer.Parser
 {
-    public class DirectoryMonitor
+    public enum DocumentMonitorState
+    {
+        Idle,
+        Running
+    }
+
+    public class DirectoryMonitor : INotifyPropertyChanged
     {
         private static readonly dynamic[] Types;
+        private DocumentMonitorState _state;
 
         public DirectoryMonitor(string path)
         {
             AbsolutePath = Path.GetFullPath(path);
+            SynchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext();
         }
+
+        public DocumentMonitorState State
+        {
+            get { return _state; }
+            set
+            {
+                _state = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private SynchronizationContext SynchronizationContext { get; set; }
 
         static DirectoryMonitor()
         {
@@ -30,24 +54,46 @@ namespace DataLayer.Parser
 
         public void Update()
         {
-            using(var ctx = new DdbContext())
+            if(State == DocumentMonitorState.Running)
             {
-                var baseDir = ctx.BaseFolders.SingleOrDefault(c => c.FullPath == AbsolutePath);
-                if(baseDir == null)
-                {
-                    baseDir = new BaseFolder { FullPath = AbsolutePath };
-                    ctx.BaseFolders.Add(baseDir);
-                    ctx.SaveChanges();
-                }
-
-                var directories = Directory.GetDirectories(AbsolutePath);
-                foreach(var directory in directories)
-                {
-                    ProcessDirectory(ctx, baseDir, Path.GetFullPath(directory));
-                }
-
-                ctx.SaveChanges();
+                return;
             }
+
+            SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
+
+
+            Task.Run(() =>
+                     {
+                         try
+                         {
+                             using(var ctx = new DdbContext())
+                             {
+                                 var baseDir = ctx.BaseFolders.SingleOrDefault(c => c.FullPath == AbsolutePath);
+                                 if(baseDir == null)
+                                 {
+                                     baseDir = new BaseFolder { FullPath = AbsolutePath };
+                                     ctx.BaseFolders.Add(baseDir);
+                                     ctx.SaveChanges();
+                                 }
+
+                                 var directories = Directory.GetDirectories(AbsolutePath);
+                                 foreach(var directory in directories)
+                                 {
+                                     ProcessDirectory(ctx, baseDir, Path.GetFullPath(directory));
+                                 }
+
+                                 ctx.SaveChanges();
+                             }
+                         }
+                         catch(Exception e)
+                         {
+                             Logger.Instance.ErrorException("Unable to update directory cache: {0}", e);
+                         }
+                         finally
+                         {
+                             SynchronizationContext.Send(c => State = DocumentMonitorState.Idle, null);
+                         }
+                     });
         }
 
         private void ProcessDirectory(DdbContext ctx, BaseFolder baseFolder, string path, Folder parentFolder = null)
@@ -182,6 +228,17 @@ namespace DataLayer.Parser
             }
 
             return DocumentType.Undefined;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            var handler = PropertyChanged;
+            if(handler != null)
+            {
+                handler(this, new PropertyChangedEventArgs(propertyName));
+            }
         }
     }
 }
