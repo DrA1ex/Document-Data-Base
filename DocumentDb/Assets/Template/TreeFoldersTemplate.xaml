@@ -1,0 +1,22 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    mc:Ignorable="d"
+                    xmlns:model="clr-namespace:DataLayer.Model;assembly=DataLayer">
+
+    <Style x:Key="FolderChidlsStyle" TargetType="TextBlock">
+        <Style.Triggers>
+            <DataTrigger d:DataContext="{d:DesignInstance model:Folder}" Binding="{Binding HasChildren}" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource WindowTextReadOnly}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <HierarchicalDataTemplate DataType="{x:Type model:Folder}"
+                              ItemsSource="{Binding Folders}">
+        <TextBlock Text="{Binding Label}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                   ToolTip="{Binding Label}"
+                   Style="{StaticResource FolderChidlsStyle}" />
+    </HierarchicalDataTemplate>
+</ResourceDictionary>

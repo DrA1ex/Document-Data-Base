@@ -1,0 +1,54 @@
+﻿<UserControl x:Class="DocumentDb.Pages.Search"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewModel="clr-namespace:DocumentDb.Pages.ViewModel"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance viewModel:SearchViewModel}"
+             d:DesignHeight="306" d:DesignWidth="793">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/DocumentDb;component/Assets/Template/DocumentsItemTemplate.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="2*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Row="0" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox Text="{Binding SearchString}" Margin="6"/>
+            <Button Grid.Row="0" Grid.Column="1" Content="Искать" Command="{Binding RefreshCommand}" Margin="6"/>
+            <ListView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding Folders}" SelectedValuePath="Documents" SelectedValue="{Binding Documents}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding FullPath}" ToolTip="{Binding FullPath}" TextTrimming="CharacterEllipsis"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+        </Grid>
+
+        <Rectangle Grid.Column="1" Fill="{DynamicResource SeparatorBackground}" Width="1" Grid.Row="0"/>
+
+        <ScrollViewer Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemTemplate="{StaticResource DocumentItemTemplate}"
+                      ItemsSource="{Binding Documents}" />
+        </ScrollViewer>
+    </Grid>
+</UserControl>

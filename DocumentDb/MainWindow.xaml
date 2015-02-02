@@ -1,0 +1,28 @@
+﻿<mui:ModernWindow x:Class="DocumentDb.MainWindow"
+                  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:mui="http://firstfloorsoftware.com/ModernUI"
+                  LogoData="{StaticResource AppIcon}"
+                  ContentSource="/Pages/Navigation.xaml"
+                  Title="Хранилище документов" IsTitleVisible="True" MinHeight="450" MinWidth="700"
+                  WindowStartupLocation="CenterScreen">
+
+    <mui:ModernWindow.TitleLinks>
+        <mui:Link DisplayName="Настройки" Source="/Pages/Settings.xaml" />
+    </mui:ModernWindow.TitleLinks>
+
+    <mui:ModernWindow.MenuLinkGroups>
+        <mui:LinkGroup DisplayName="Документы">
+            <mui:LinkGroup.Links>
+                <mui:Link DisplayName="Навигация" Source="/Pages/Navigation.xaml"/>
+                <mui:Link DisplayName="Поиск" Source="/Pages/Search.xaml"/>
+            </mui:LinkGroup.Links>
+        </mui:LinkGroup>
+        <mui:LinkGroup DisplayName="Управление">
+            <mui:LinkGroup.Links>
+                <mui:Link DisplayName="Индексирование" Source="/Pages/Index.xaml"/>
+                <mui:Link DisplayName="Статистика" Source="/Pages/Statistics.xaml"/>
+            </mui:LinkGroup.Links>
+        </mui:LinkGroup>
+    </mui:ModernWindow.MenuLinkGroups>
+</mui:ModernWindow>
