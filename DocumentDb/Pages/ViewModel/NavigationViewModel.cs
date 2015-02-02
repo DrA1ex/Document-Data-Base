@@ -40,6 +40,11 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _documents = value;
+                foreach(var document in value)
+                {
+                    Context.Entry(document).Reload();
+                }
+
                 OnPropertyChanged("Documents");
             }
         }
