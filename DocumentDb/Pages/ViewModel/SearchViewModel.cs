@@ -141,8 +141,9 @@ namespace DocumentDb.Pages.ViewModel
                                                  return folder;
                                              })
                                      .Where(c => c.FullPath.StartsWith(_baseCatalog.FullPath))
-                                     .OrderBy(c => c.FullPath)
                                      .ToList();
+
+                                 var resultFolders = new List<Folder>();
 
                                  foreach(var doc in docs)
                                  {
@@ -159,11 +160,16 @@ namespace DocumentDb.Pages.ViewModel
                                      }
 
                                      folderForDoc.Documents.Add(doc);
+
+                                     if(!resultFolders.Contains(folderForDoc))
+                                     {
+                                         resultFolders.Add(folderForDoc);
+                                     }
                                  }
 
                                  SynchronizationContext.Send(c => Folders.Clear(), null);
 
-                                 foreach(var folder in folders)
+                                 foreach(var folder in resultFolders)
                                  {
                                      SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
                                  }
@@ -180,7 +186,7 @@ namespace DocumentDb.Pages.ViewModel
         {
             if(String.IsNullOrWhiteSpace(clause))
             {
-                return new Document[] {};
+                return new Document[] { };
             }
 
             var docs = FtsService.Search(clause);
