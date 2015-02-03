@@ -213,6 +213,8 @@ namespace DataLayer
                 .Where(x => !string.IsNullOrEmpty(x)).Select(x => x.Trim() + "*");
             input = string.Join(" ", terms);
 
+            GC.Collect();
+
             return SearchInternal(input, fieldName);
         }
 
