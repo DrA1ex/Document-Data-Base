@@ -1,16 +1,21 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using Common;
 using DataLayer;
 using DataLayer.Model;
+using DataLayer.Parser;
+using DocumentDb.Common;
 using DocumentDb.Common.Storage;
 using FirstFloor.ModernUI.Presentation;
+using FirstFloor.ModernUI.Windows.Controls;
 
 namespace DocumentDb.Pages.ViewModel
 {
@@ -25,6 +30,17 @@ namespace DocumentDb.Pages.ViewModel
 
         public NavigationViewModel()
         {
+            ApplicationWorkers.DirectoryMonitor.PropertyChanged += (sender, args) =>
+                                                                   {
+                                                                       if(args.PropertyName == "State")
+                                                                       {
+                                                                           if(ApplicationWorkers.DirectoryMonitor.State == DocumentMonitorState.Idle)
+                                                                           {
+                                                                               Refresh();
+                                                                           }
+                                                                       }
+                                                                   };
+
             Refresh();
         }
 
@@ -75,7 +91,17 @@ namespace DocumentDb.Pages.ViewModel
 
         private void OpenFile(Document doc)
         {
-            Process.Start(Path.Combine(doc.ParentFolder.FullPath, doc.Name));
+            var fileToOpen = Path.Combine(doc.ParentFolder.FullPath, doc.Name);
+
+            try
+            {
+                Process.Start(fileToOpen);
+            }
+            catch(Exception e)
+            {
+                ModernDialog.ShowMessage(String.Format("Не удалось открыть файл '{0}'. Причина: {1}", fileToOpen, e.Message)
+                    , "Ошибка открытия файла", MessageBoxButton.OK, Application.Current.MainWindow);
+            }
         }
 
         public void Refresh()

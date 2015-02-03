@@ -121,7 +121,7 @@
     <Compile Include="Model\Folder.cs" />
     <Compile Include="Model\StatisticsModel.cs" />
     <Compile Include="Parser\ContentExtractor.cs" />
-    <Compile Include="Parser\ContentExtractors\DocContentExtractor.cs" />
+    <Compile Include="Parser\ContentExtractors\DocRtfContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\DocxContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\PdfContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\TextContentExtractor.cs" />

@@ -88,6 +88,33 @@ namespace DataLayer.Parser
                                      }
 
                                      ctx.SaveChanges();
+
+                                     foreach(var document in ctx.Documents.Include("ParentFolder"))
+                                     {
+                                         var path = Path.Combine(document.ParentFolder.FullPath, document.Name);
+                                         if(!File.Exists(path))
+                                         {
+                                             ctx.Documents.Remove(document);
+                                             StatisticsModel.Instance.ParsedDocumentsCount -= 1;
+                                             if(document.Cached)
+                                             {
+                                                 FtsService.ClearLuceneIndexRecord(document.Id);
+                                                 StatisticsModel.Instance.DocumentsInCacheCount -= 1;
+                                             }
+                                         }
+                                     }
+
+                                     foreach(var folder in ctx.Folders)
+                                     {
+                                         if(!Directory.Exists(folder.FullPath))
+                                         {
+                                             ctx.Folders.Remove(folder);
+                                             StatisticsModel.Instance.ParsedFoldersCount -= 1;
+                                         }
+                                     }
+
+                                     ctx.SaveChanges();
+
                                      StatisticsModel.Instance.Refresh();
                                  }
                              }

@@ -6,12 +6,14 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using Common;
 using DataLayer;
 using DataLayer.Model;
 using DocumentDb.Common.Storage;
 using FirstFloor.ModernUI.Presentation;
+using FirstFloor.ModernUI.Windows.Controls;
 
 namespace DocumentDb.Pages.ViewModel
 {
@@ -98,7 +100,15 @@ namespace DocumentDb.Pages.ViewModel
             }
 
             var fileToOpen = Path.Combine(_baseCatalog.FullPath, doc.ParentFolder.FullPath.TrimStart('\\'), docName);
-            Process.Start(fileToOpen);
+            try
+            {
+                Process.Start(fileToOpen);
+            }
+            catch(Exception e)
+            {
+                ModernDialog.ShowMessage(String.Format("Не удалось открыть файл '{0}'. Причина: {1}", fileToOpen, e.Message)
+                    , "Ошибка открытия файла", MessageBoxButton.OK, Application.Current.MainWindow);
+            }
         }
 
         public void Refresh()
