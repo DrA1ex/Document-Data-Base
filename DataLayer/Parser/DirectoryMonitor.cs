@@ -97,7 +97,7 @@ namespace DataLayer.Parser
 
         public void Update()
         {
-            if(_waitingThreads > 1)
+            if(_waitingThreads > 1 || String.IsNullOrWhiteSpace(BasePath))
             {
                 return;
             }
@@ -182,7 +182,7 @@ namespace DataLayer.Parser
             {
                 folder = parentFolder.Folders.SingleOrDefault(c => c.FullPath == path);
             }
-            else if(baseFolder.Folders.Any())
+            else if(baseFolder.Folders != null && baseFolder.Folders.Any())
             {
                 folder = baseFolder.Folders.SingleOrDefault(c => c.FullPath == path);
             }
