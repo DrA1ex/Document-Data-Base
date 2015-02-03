@@ -9,6 +9,13 @@ using Common;
 
 namespace DataLayer.Model
 {
+    public enum StatisticsModelRefreshMethod
+    {
+        UpdateAll,
+        UpdateForDocumentParser,
+        UpdateForDocumentMonitor
+    }
+
     public class StatisticsModel : INotifyPropertyChanged
     {
         public static readonly StatisticsModel Instance = new StatisticsModel();
@@ -90,7 +97,7 @@ namespace DataLayer.Model
             get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
         }
 
-        public void Refresh()
+        public void Refresh(StatisticsModelRefreshMethod refreshMethod = StatisticsModelRefreshMethod.UpdateAll)
         {
             if(IsBusy)
             {
@@ -118,9 +125,16 @@ namespace DataLayer.Model
 
                                  SynchronizationContext.Post(c => FtsIndexSize = (float)c, ftsIndexSize);
                                  SynchronizationContext.Post(c => DatabaseSize = (float)c, dbIndexSize);
-                                 SynchronizationContext.Post(c => ParsedFoldersCount = (int)c, parsedFolders);
-                                 SynchronizationContext.Post(c => ParsedDocumentsCount = (int)c, parsedDocs);
-                                 SynchronizationContext.Post(c => DocumentsInCacheCount = (int)c, cachedDocs);
+
+                                 if(refreshMethod == StatisticsModelRefreshMethod.UpdateAll || refreshMethod == StatisticsModelRefreshMethod.UpdateForDocumentParser)
+                                 {
+                                     SynchronizationContext.Post(c => DocumentsInCacheCount = (int)c, cachedDocs);
+                                 }
+                                 if(refreshMethod == StatisticsModelRefreshMethod.UpdateAll || refreshMethod == StatisticsModelRefreshMethod.UpdateForDocumentMonitor)
+                                 {
+                                     SynchronizationContext.Post(c => ParsedDocumentsCount = (int)c, parsedDocs);
+                                     SynchronizationContext.Post(c => ParsedFoldersCount = (int)c, parsedFolders);
+                                 }
                              }
                          }
                          finally

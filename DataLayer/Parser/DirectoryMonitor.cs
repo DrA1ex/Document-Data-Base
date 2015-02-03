@@ -115,7 +115,7 @@ namespace DataLayer.Parser
 
                                      ctx.SaveChanges();
 
-                                     StatisticsModel.Instance.Refresh();
+                                     StatisticsModel.Instance.Refresh(StatisticsModelRefreshMethod.UpdateForDocumentMonitor);
                                  }
                              }
                              catch(Exception e)

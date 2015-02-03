@@ -113,7 +113,7 @@ namespace DataLayer.Parser
                         try
                         {
                             ctx.SaveChanges();
-                            StatisticsModel.Instance.Refresh();
+                            StatisticsModel.Instance.Refresh(StatisticsModelRefreshMethod.UpdateForDocumentParser);
                         }
                         catch(Exception e)
                         {
