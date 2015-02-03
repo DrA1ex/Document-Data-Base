@@ -123,7 +123,7 @@ namespace DataLayer
                    {
                        Id = id,
                        Name = highlighter.GetBestFragment(Analyzer, "Name", name) ?? name,
-                       FtsCaptures = highlighter.GetBestFragment(Analyzer, "Content", content) ?? String.Join(" ", content.Split(' ').Take(10) + "...")
+                       FtsCaptures = highlighter.GetBestFragment(Analyzer, "Content", content) ?? (String.Join(" ", content.Split(' ').Take(10)) + "...")
                    };
         }
 
@@ -161,9 +161,9 @@ namespace DataLayer
             using(var searcher = new IndexSearcher(Directory, false))
             {
                 const int hitsLimit = 1000;
-                var searchFildIsEmpty = string.IsNullOrEmpty(searchField);
+                var searchFieldIsEmpty = string.IsNullOrEmpty(searchField);
                 QueryParser parser;
-                if(!searchFildIsEmpty)
+                if(!searchFieldIsEmpty)
                 {
                     parser = new QueryParser(Version.LUCENE_30, searchField, Analyzer);
                 }
@@ -178,11 +178,11 @@ namespace DataLayer
                 var formatter = new SimpleHTMLFormatter(HighlightTags[0], HighlightTags[1]);
                 var highlighter = new Highlighter(formatter, scorer)
                                   {
-                                      TextFragmenter = new SimpleSpanFragmenter(scorer, 250),
+                                      TextFragmenter = new SimpleSpanFragmenter(scorer, 500),
                                       MaxDocCharsToAnalyze = int.MaxValue
                                   };
 
-                if(!searchFildIsEmpty)
+                if(!searchFieldIsEmpty)
                 {
                     var hits = searcher.Search(query, hitsLimit).ScoreDocs;
                     var results = MapLuceneToDataList(hits, searcher, highlighter);

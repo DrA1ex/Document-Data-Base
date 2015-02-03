@@ -4,7 +4,7 @@ namespace DataLayer.Parser.ContentExtractors.Base
 {
     interface IContentExtractor
     {
-        DocumentType SupporterType { get; }
+        DocumentType[] SupporterTypes { get; }
 
         string GetContent(string filePath);
     }

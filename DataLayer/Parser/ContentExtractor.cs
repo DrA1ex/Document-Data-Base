@@ -23,7 +23,7 @@ namespace DataLayer.Parser
 
         public static string GetContent(Document doc)
         {
-            var extractor = Extractors.FirstOrDefault(c => c.SupporterType == doc.Type);
+            var extractor = Extractors.FirstOrDefault(c => c.SupporterTypes.Contains(doc.Type));
 
             if(extractor != null)
             {

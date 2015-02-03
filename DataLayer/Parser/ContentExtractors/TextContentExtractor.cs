@@ -8,9 +8,9 @@ namespace DataLayer.Parser.ContentExtractors
 {
     public class TextContentExtractor : IContentExtractor
     {
-        public DocumentType SupporterType
+        public DocumentType[] SupporterTypes
         {
-            get { return DocumentType.Text; }
+            get { return new[] {DocumentType.Text}; }
         }
 
         public string GetContent(string filePath)
@@ -23,7 +23,9 @@ namespace DataLayer.Parser.ContentExtractors
 
                 var encoding = Encoding.Default;
                 if(cdet.Charset != null)
+                {
                     encoding = Encoding.GetEncoding(cdet.Charset);
+                }
 
                 fs.Seek(0, SeekOrigin.Begin);
 
