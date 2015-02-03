@@ -32,6 +32,8 @@ namespace DataLayer.Parser
             SynchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext();
         }
 
+        private FileSystemWatcher Watcher { get; set; }
+
         public DocumentMonitorState State
         {
             get { return _state; }
@@ -57,16 +59,49 @@ namespace DataLayer.Parser
         public string BasePath
         {
             get { return _basePath; }
-            set { _basePath = Path.GetFullPath(value); }
+            set
+            {
+                _basePath = Path.GetFullPath(value);
+                InitMonitoring(_basePath);
+            }
+        }
+
+        private void InitMonitoring(string path)
+        {
+            if(Watcher != null)
+            {
+                Watcher.Dispose();
+                Watcher = null;
+            }
+
+            Watcher = new FileSystemWatcher(path)
+                      {
+                          IncludeSubdirectories = true,
+                          NotifyFilter = NotifyFilters.LastWrite
+                                         | NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size
+                      };
+
+            Watcher.Renamed += (sender, args) => { Update(); };
+            Watcher.Deleted += (sender, args) => { Update(); };
+            Watcher.Created += (sender, args) => { Update(); };
+
+            Watcher.EnableRaisingEvents = true;
         }
 
         private readonly object _syncDummy = new object();
+        private int _waitingThreads;
 
         public void Update()
         {
+            if(_waitingThreads > 1)
+            {
+                return;
+            }
+
             SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
             Task.Run(() =>
                      {
+                         ++_waitingThreads;
                          lock(_syncDummy)
                          {
                              try
@@ -125,6 +160,7 @@ namespace DataLayer.Parser
                              finally
                              {
                                  SynchronizationContext.Send(c => State = DocumentMonitorState.Idle, null);
+                                 --_waitingThreads;
                              }
                          }
                      });
@@ -209,6 +245,8 @@ namespace DataLayer.Parser
             {
                 ProcessFileInternal(ctx, folder, file);
             }
+
+            ctx.SaveChanges();
         }
 
         private void ProcessFileInternal(DdbContext ctx, Folder folder, string filePath)

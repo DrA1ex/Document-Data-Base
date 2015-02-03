@@ -75,7 +75,8 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _documents = value;
-                foreach(var document in value)
+                var docsEnumerated = value.ToArray();
+                foreach(var document in docsEnumerated)
                 {
                     Context.Entry(document).Reload();
                 }
@@ -104,6 +105,12 @@ namespace DocumentDb.Pages.ViewModel
             }
         }
 
+        public void RecreateContext()
+        {
+            Context.Dispose();
+            _context = null;
+        }
+
         public void Refresh()
         {
             if(IsBusy)
@@ -118,13 +125,14 @@ namespace DocumentDb.Pages.ViewModel
                      {
                          try
                          {
+                             SynchronizationContext.Send(c => Folders.Clear(), null);
+                             RecreateContext();
+
                              var baseCatalog = Context.BaseFolders
                                  .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
 
                              if(baseCatalog != null)
                              {
-                                 SynchronizationContext.Send(c => Folders.Clear(), null);
-
                                  foreach(var folder in baseCatalog.Folders)
                                  {
                                      SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
