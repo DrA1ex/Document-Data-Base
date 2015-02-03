@@ -28,7 +28,8 @@ namespace DataLayer.Parser
 
         public DirectoryMonitor(string path)
         {
-            BasePath = path;
+            if(!String.IsNullOrWhiteSpace(path))
+                BasePath = path;
             SynchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext();
         }
 
@@ -61,8 +62,11 @@ namespace DataLayer.Parser
             get { return _basePath; }
             set
             {
-                _basePath = Path.GetFullPath(value);
-                InitMonitoring(_basePath);
+                if(!String.IsNullOrWhiteSpace(value))
+                {
+                    _basePath = Path.GetFullPath(value);
+                    InitMonitoring(_basePath);
+                }
             }
         }
 

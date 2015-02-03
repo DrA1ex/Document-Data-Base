@@ -38,11 +38,11 @@
 
         <TextBlock Grid.Row="2" Grid.Column="0" Text="Размер поискового индекса" />
         <TextBlock Grid.Row="2" Grid.Column="1"
-                   Text="{Binding Path=StatisticsModel.FtsIndexSize, StringFormat='{}{0} МБ'}" />
+                   Text="{Binding Path=StatisticsModel.FtsIndexSize, StringFormat='{}{0:0.00} МБ'}" />
 
         <TextBlock Grid.Row="3" Grid.Column="0" Text="Размер файлового индекса" />
         <TextBlock Grid.Row="3" Grid.Column="1"
-                   Text="{Binding Path=StatisticsModel.DatabaseSize, StringFormat='{}{0} МБ'}" />
+                   Text="{Binding Path=StatisticsModel.DatabaseSize, StringFormat='{}{0:0.00} МБ'}" />
 
         <TextBlock Grid.Row="4" Grid.Column="0" Text="Количество каталогов в индексе" />
         <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding StatisticsModel.ParsedFoldersCount}" />

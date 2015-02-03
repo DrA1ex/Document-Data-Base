@@ -112,12 +112,21 @@ namespace DataLayer.Model
                          {
                              using(var ctx = new DdbContext())
                              {
-                                 var ftsIndexSize = new DirectoryInfo(FtsService.LuceneDir).Size() / 1024.0f / 1024.0f;
+                                 float ftsIndexSize = 0;
+                                 if(Directory.Exists(FtsService.LuceneDir))
+                                 {
+                                     ftsIndexSize = new DirectoryInfo(FtsService.LuceneDir).Size() / 1024.0f / 1024.0f;
+                                 }
 
                                  // ReSharper disable once PossibleNullReferenceException
-                                 var dbIndexSize = new FileInfo(Path.Combine(Environment.CurrentDirectory,
-                                     ctx.Database.Connection.DataSource.Replace("|DataDirectory|", "")))
-                                     .Length / 1024.0f / 1024.0f;
+                                 var dbPath = Path.Combine(Environment.CurrentDirectory,
+                                     ctx.Database.Connection.DataSource.Replace("|DataDirectory|", ""));
+                                 float dbIndexSize = 0;
+                                 if(!String.IsNullOrWhiteSpace(dbPath) && File.Exists(dbPath))
+                                 {
+                                     dbIndexSize = new FileInfo(dbPath)
+                                         .Length / 1024.0f / 1024.0f;
+                                 }
 
                                  var parsedFolders = ctx.Folders.Count();
                                  var parsedDocs = ctx.Documents.Count();

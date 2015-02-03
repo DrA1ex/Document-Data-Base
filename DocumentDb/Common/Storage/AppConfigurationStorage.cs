@@ -61,7 +61,7 @@ namespace DocumentDb.Common.Storage
                 AppearanceManager.Current.ThemeSource = Theme;
             }
 
-            if(AccentColor != Colors.Transparent)
+            if(AccentColor != default(Color))
             {
                 AppearanceManager.Current.AccentColor = AccentColor;
             }
