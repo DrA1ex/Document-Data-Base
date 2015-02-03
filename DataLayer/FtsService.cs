@@ -59,25 +59,21 @@ namespace DataLayer
 
         public static void AddUpdateLuceneIndex(DocumentData documentData, string documentContent)
         {
-            var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-            using(var writer = new IndexWriter(Directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
+            using(var writer = new IndexWriter(Directory, Analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
                 AddToLuceneIndex(documentData, documentContent, writer);
 
-                analyzer.Close();
                 writer.Dispose();
             }
         }
 
         public static void ClearLuceneIndexRecord(long docId)
         {
-            var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-            using(var writer = new IndexWriter(Directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
+            using(var writer = new IndexWriter(Directory, Analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
                 var searchQuery = new TermQuery(new Term("Id", docId.ToString()));
                 writer.DeleteDocuments(searchQuery);
 
-                analyzer.Close();
                 writer.Dispose();
             }
         }
@@ -86,12 +82,9 @@ namespace DataLayer
         {
             try
             {
-                var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-                using(var writer = new IndexWriter(Directory, analyzer, true, IndexWriter.MaxFieldLength.UNLIMITED))
+                using(var writer = new IndexWriter(Directory, Analyzer, true, IndexWriter.MaxFieldLength.UNLIMITED))
                 {
                     writer.DeleteAll();
-
-                    analyzer.Close();
                     writer.Dispose();
                 }
             }
@@ -104,10 +97,8 @@ namespace DataLayer
 
         public static void Optimize()
         {
-            var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-            using(var writer = new IndexWriter(Directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
+            using(var writer = new IndexWriter(Directory, Analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
-                analyzer.Close();
                 writer.Optimize();
                 writer.Dispose();
             }
@@ -186,7 +177,6 @@ namespace DataLayer
                 {
                     var hits = searcher.Search(query, hitsLimit).ScoreDocs;
                     var results = MapLuceneToDataList(hits, searcher, highlighter);
-                    Analyzer.Close();
                     searcher.Dispose();
                     return results;
                 }
@@ -195,7 +185,6 @@ namespace DataLayer
                     var hits = searcher.Search
                         (query, null, hitsLimit, Sort.RELEVANCE).ScoreDocs;
                     var results = MapLuceneToDataList(hits, searcher, highlighter);
-                    Analyzer.Close();
                     searcher.Dispose();
                     return results;
                 }
@@ -209,9 +198,7 @@ namespace DataLayer
                 return new List<DocumentData>();
             }
 
-            var terms = input.Trim().Replace("-", " ").Split(' ')
-                .Where(x => !string.IsNullOrEmpty(x)).Select(x => x.Trim() + "*");
-            input = string.Join(" ", terms);
+            input = input.Trim().Replace("-", " ");
 
             GC.Collect();
 
