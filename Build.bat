@@ -19,6 +19,8 @@ del bin /S /Q
 xcopy DocumentDb\bin\Release\DocumentDb.exe bin\*.*
 xcopy DocumentDb\bin\Release\DocumentDb.exe.config bin\*.*
 xcopy DocumentDb\bin\Release\*.dll bin\*.*
+xcopy DocumentDb\bin\Release\x86\*.* bin\x86\*.*
+xcopy DocumentDb\bin\Release\amd64\*.* bin\amd64\*.*
 
 echo Done
 
