@@ -40,7 +40,11 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <TextBox Text="{Binding SearchString}" Margin="6" />
+            <TextBox Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" Margin="6">
+                <TextBox.InputBindings>
+                    <KeyBinding Command="{Binding RefreshCommand}" Key="Return" />
+                </TextBox.InputBindings>
+            </TextBox>
             <Button Grid.Row="0" Grid.Column="1" Content="Искать" Command="{Binding RefreshCommand}" Margin="6" />
             <ListView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding Folders}"
                       SelectedValuePath="Documents" SelectedValue="{Binding Documents}"
