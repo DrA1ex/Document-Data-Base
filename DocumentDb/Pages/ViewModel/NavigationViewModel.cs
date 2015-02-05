@@ -116,10 +116,10 @@ namespace DocumentDb.Pages.ViewModel
 
                              try
                              {
-                                 IQueryable<Document> docsEnumerated;
                                  using(var ctx = new DdbContext())
                                  {
-                                     var documents = ctx.Documents.Where(c => documentsId.Contains(c.Id));
+                                     var documents = ctx.Documents.Include("ParentFolder").Where(c => documentsId.Contains(c.Id));
+                                     IQueryable<Document> docsEnumerated;
                                      if(AppConfigurationStorage.Storage.IndexUnsupportedFormats)
                                      {
                                          docsEnumerated = documents;
