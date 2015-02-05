@@ -258,11 +258,6 @@ namespace DataLayer.Parser
             var fileName = Path.GetFileName(filePath);
             var fileType = GetTypeForFileName(fileName);
 
-            if(fileType == DocumentType.Undefined)
-            {
-                return;
-            }
-
             Document document = null;
             if(folder.Folders != null)
             {
