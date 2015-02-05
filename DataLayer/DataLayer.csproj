@@ -88,6 +88,9 @@
     <Reference Include="NLog">
       <HintPath>..\packages\NLog.3.2.0.0\lib\net45\NLog.dll</HintPath>
     </Reference>
+    <Reference Include="policy.2.0.taglib-sharp">
+      <HintPath>..\packages\taglib.2.1.0.0\lib\policy.2.0.taglib-sharp.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
@@ -102,6 +105,9 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="taglib-sharp">
+      <HintPath>..\packages\taglib.2.1.0.0\lib\taglib-sharp.dll</HintPath>
+    </Reference>
     <Reference Include="Ude">
       <HintPath>..\packages\UDE.CSharp.1.1.0\lib\Ude.dll</HintPath>
     </Reference>
@@ -121,6 +127,7 @@
     <Compile Include="Model\Folder.cs" />
     <Compile Include="Model\StatisticsModel.cs" />
     <Compile Include="Parser\ContentExtractor.cs" />
+    <Compile Include="Parser\ContentExtractors\AudioContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\DocRtfContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\DocxContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\PdfContentExtractor.cs" />
