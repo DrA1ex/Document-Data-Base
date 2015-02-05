@@ -53,7 +53,7 @@ namespace DataLayer.Parser
             Types = ((DocumentType[])Enum.GetValues(typeof(DocumentType)))
                 .Select(c => new { Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c })
                 .Where(c => c.Attribute != null)
-                .Select(c => new { c.Attribute.Extension, c.Value })
+                .Select(c => new { c.Attribute.Extensions, c.Value })
                 .ToArray();
         }
 
@@ -295,7 +295,7 @@ namespace DataLayer.Parser
             {
                 extension = extension.Substring(1);
 
-                var value = Types.SingleOrDefault(c => c.Extension == extension);
+                var value = Types.SingleOrDefault(c => c.Extensions.Contains(extension));
                 if(value != null)
                 {
                     return value.Value;

@@ -4,11 +4,16 @@ namespace DataLayer.Attributes
 {
     public class ExtensionAttribute : Attribute
     {
-        public string Extension { get; set; }
+        public string[] Extensions { get; set; }
 
         public ExtensionAttribute(string extension)
         {
-            Extension = extension;
+            Extensions = new[] { extension };
+        }
+
+        public ExtensionAttribute(params string[] extensions)
+        {
+            Extensions = extensions;
         }
     }
 }
