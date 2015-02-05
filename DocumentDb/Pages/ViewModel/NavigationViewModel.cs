@@ -74,7 +74,6 @@ namespace DocumentDb.Pages.ViewModel
             get { return _documents; }
             set
             {
-                _documents = value;
                 Document[] docsEnumerated;
                 if(AppConfigurationStorage.Storage.IndexUnsupportedFormats)
                 {
@@ -89,6 +88,8 @@ namespace DocumentDb.Pages.ViewModel
                 {
                     Context.Entry(document).Reload();
                 }
+
+                _documents = docsEnumerated;
 
                 OnPropertyChanged("Documents");
             }
