@@ -32,6 +32,19 @@ namespace DocumentDb.Content.ViewModel
             get { return _pickCatalogCommand ?? (_pickCatalogCommand = new DelegateCommand(PickCatalog)); }
         }
 
+        private bool _indexUnsupportedFormats;
+
+        public bool IndexUnsupportedFormats
+        {
+            get { return _indexUnsupportedFormats; }
+            set
+            {
+                _indexUnsupportedFormats = value;
+                AppConfigurationStorage.Storage.IndexUnsupportedFormats = value;
+                OnPropertyChanged("IndexUnsupportedFormats");
+            }
+        }
+
         private void PickCatalog()
         {
             var dialog = new FolderBrowserDialog

@@ -204,7 +204,10 @@ namespace DocumentDb.Pages.ViewModel
                 existingDocument.Name = document.Name;
                 existingDocument.FtsCaptures = document.FtsCaptures;
 
-                result.Add(existingDocument);
+                if(existingDocument.Type != DocumentType.Undefined || AppConfigurationStorage.Storage.IndexUnsupportedFormats)
+                {
+                    result.Add(existingDocument);
+                }
             }
 
             return result.ToArray();

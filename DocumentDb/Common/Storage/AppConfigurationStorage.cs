@@ -52,6 +52,12 @@ namespace DocumentDb.Common.Storage
             set { SetterForModelProperty(c => c.ValentineDayThemeUnlocked, value); }
         }
 
+        public bool IndexUnsupportedFormats
+        {
+            get { return GetterForModelProperty(c => c.IndexUnsupportedFormats); }
+            set { SetterForModelProperty(c => c.IndexUnsupportedFormats, value); }
+        }
+
         public void LoadAppearanceConfiguration()
         {
             AppearanceManager.Current.FontSize = FontSize;
@@ -91,9 +97,13 @@ namespace DocumentDb.Common.Storage
             TReturn value)
         {
             var storage = DataStorage.GetStorage() ?? new AppConfiguration();
-            storage.SetValueFromPath(propertyExpression, value);
-            DataStorage.UpdateStorage(storage);
-            DataStorage.Save();
+            var currentValue = storage.GetValueFromPath(propertyExpression);
+            if(currentValue.Equals(value))
+            {
+                storage.SetValueFromPath(propertyExpression, value);
+                DataStorage.UpdateStorage(storage);
+                DataStorage.Save();
+            }
         }
     }
 }

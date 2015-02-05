@@ -75,7 +75,9 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _documents = value;
-                var docsEnumerated = value.ToArray();
+                Document[] docsEnumerated;
+                docsEnumerated = AppConfigurationStorage.Storage.IndexUnsupportedFormats ? value.ToArray() : value.Where(c => c.Type != DocumentType.Undefined).ToArray();
+
                 foreach(var document in docsEnumerated)
                 {
                     Context.Entry(document).Reload();

@@ -23,10 +23,13 @@
                         <RowDefinition />
                     </Grid.RowDefinitions>
 
-                    <Label Content="Каталог:" VerticalAlignment="Center" Margin="6"/>
+                    <Label Content="Расположение каталога:" VerticalAlignment="Center" Margin="6"/>
                     <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CurrentDirectory}" VerticalAlignment="Center"
                               Margin="6" />
                     <Button Grid.Row="0" Grid.Column="2" Margin="6" Content="Выбрать" VerticalAlignment="Center" Command="{Binding PickCatalogCommand}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Индексировать неподдерживаемые форматы:" VerticalAlignment="Center" Margin="6"/>
+                    <CheckBox Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="6" IsChecked="{Binding IndexUnsupportedFormats}"/>
                 </Grid>
             </StackPanel>
         </ScrollViewer>

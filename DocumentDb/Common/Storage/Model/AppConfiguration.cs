@@ -12,5 +12,6 @@ namespace DocumentDb.Common.Storage.Model
         public Color AccentColor { get; set; }
         public FontSize FontSize { get; set; }
         public bool ValentineDayThemeUnlocked { get; set; }
+        public bool IndexUnsupportedFormats { get; set; }
     }
 }
