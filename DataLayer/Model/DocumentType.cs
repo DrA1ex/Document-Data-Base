@@ -6,7 +6,7 @@ namespace DataLayer.Model
     public enum DocumentType
     {
         [Description("Текстовый документ")]
-        [Extension("txt")]
+        [Extension("txt", "cpp", "h", "cs")]
         Text,
 
         [Description("Документ MS Word 97-2003")]
@@ -24,6 +24,14 @@ namespace DataLayer.Model
         [Description("Документ PDF")]
         [Extension("pdf")]
         Pdf,
+
+        [Description("Аудиотрек")]
+        [Extension("mp3", "ogg", "flac", "wav")]
+        Audio,
+
+        [Description("Видеоклип")]
+        [Extension("avi", "mkv", "mp4", "flv", "mov")]
+        Video,
 
         [Description("Неподдерживаемый тип")]
         Undefined = -1
