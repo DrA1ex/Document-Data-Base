@@ -6,7 +6,7 @@ namespace DataLayer.Model
     public enum DocumentType
     {
         [Description("Текстовый документ")]
-        [Extension("txt", "cpp", "h", "cs")]
+        [Extension("txt", "cpp", "h", "cs", "log")]
         Text,
 
         [Description("Документ MS Word 97-2003")]
