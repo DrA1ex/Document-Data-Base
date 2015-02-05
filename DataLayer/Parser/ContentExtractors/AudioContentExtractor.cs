@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using Common.Utils;
 using DataLayer.Model;
@@ -19,7 +20,8 @@ namespace DataLayer.Parser.ContentExtractors
             Tag tag = null;
             try
             {
-                tag = File.Create(filePath).Tag;
+                var file = File.Create(filePath);
+                tag = file.Tag;
             }
             catch(Exception e)
             {
@@ -27,7 +29,9 @@ namespace DataLayer.Parser.ContentExtractors
             }
 
             if(tag == null)
+            {
                 return String.Empty;
+            }
 
             var builder = new StringBuilder();
             if(tag.Performers != null)
@@ -56,7 +60,17 @@ namespace DataLayer.Parser.ContentExtractors
                 builder.AppendLine(tag.Lyrics);
             }
 
-            return builder.ToString();
+            var resultString = builder.ToString();
+
+
+            return FixCyrillicEncodingIssues(resultString);
+        }
+
+        public static string FixCyrillicEncodingIssues(string unknown)
+        {
+            return new string(unknown.ToCharArray().
+                Select(x => ((x + 848) >= 'А' && (x + 848) <= 'ё') ? (char)(x + 848) : x).
+                ToArray());
         }
     }
 }
