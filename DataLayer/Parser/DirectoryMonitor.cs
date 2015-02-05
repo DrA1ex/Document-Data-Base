@@ -29,7 +29,9 @@ namespace DataLayer.Parser
         public DirectoryMonitor(string path)
         {
             if(!String.IsNullOrWhiteSpace(path))
+            {
                 BasePath = path;
+            }
             SynchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext();
         }
 
@@ -294,8 +296,7 @@ namespace DataLayer.Parser
             if(extension.Length > 0)
             {
                 extension = extension.Substring(1);
-
-                var value = Types.SingleOrDefault(c => c.Extensions.Contains(extension));
+                var value = Types.SingleOrDefault(c => Enumerable.Contains(c.Extensions, extension));
                 if(value != null)
                 {
                     return value.Value;
