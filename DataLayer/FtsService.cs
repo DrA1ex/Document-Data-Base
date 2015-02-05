@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Common.Utils;
 using Lucene.Net.Analysis.Ru;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -36,7 +37,14 @@ namespace DataLayer
                 var lockFilePath = Path.Combine(LuceneDir, "write.lock");
                 if(File.Exists(lockFilePath))
                 {
-                    File.Delete(lockFilePath);
+                    try
+                    {
+                        File.Delete(lockFilePath);
+                    }
+                    catch(Exception e)
+                    {
+                        Logger.Instance.Warn("Unable to delete lucene write.lock {0}", (object)e);
+                    }
                 }
                 return _directoryTemp;
             }
