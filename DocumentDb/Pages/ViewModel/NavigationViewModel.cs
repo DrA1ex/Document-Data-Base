@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -22,11 +21,14 @@ namespace DocumentDb.Pages.ViewModel
     public class NavigationViewModel : NotifyPropertyChanged
     {
         private DdbContext _context;
-        private IEnumerable<Document> _documents;
+        private CancellationTokenSource _cts;
+        private ObservableCollection<Document> _documents;
+        private bool _documentsIsLoading;
         private ObservableCollection<Folder> _folders;
-        private bool _isBusy;
+        private bool _folderTreeIsLoading;
         private ICommand _openFileCommand;
         private SynchronizationContext _synchronizationContext;
+        private readonly object _syncDummy = new object();
 
         public NavigationViewModel()
         {
@@ -44,13 +46,23 @@ namespace DocumentDb.Pages.ViewModel
             Refresh();
         }
 
-        public bool IsBusy
+        public bool FolderTreeIsLoading
         {
-            get { return _isBusy; }
+            get { return _folderTreeIsLoading; }
             set
             {
-                _isBusy = value;
-                OnPropertyChanged("isBusy");
+                _folderTreeIsLoading = value;
+                OnPropertyChanged("FolderTreeIsLoading");
+            }
+        }
+
+        public bool DocumentsIsLoading
+        {
+            get { return _documentsIsLoading; }
+            set
+            {
+                _documentsIsLoading = value;
+                OnPropertyChanged("DocumentsIsLoading");
             }
         }
 
@@ -69,35 +81,74 @@ namespace DocumentDb.Pages.ViewModel
             get { return _folders ?? (_folders = new ObservableCollection<Folder>()); }
         }
 
-        public IEnumerable<Document> Documents
+        public ObservableCollection<Document> Documents
         {
-            get { return _documents; }
-            set
-            {
-                Document[] docsEnumerated;
-                if(AppConfigurationStorage.Storage.IndexUnsupportedFormats)
-                {
-                    docsEnumerated = value.ToArray();
-                }
-                else
-                {
-                    docsEnumerated = value.Where(c => c.Type != DocumentType.Undefined).ToArray();
-                }
-
-                foreach(var document in docsEnumerated)
-                {
-                    Context.Entry(document).Reload();
-                }
-
-                _documents = docsEnumerated;
-
-                OnPropertyChanged("Documents");
-            }
+            get { return _documents ?? (_documents = new ObservableCollection<Document>()); }
         }
 
         public ICommand OpenFileCommand
         {
             get { return _openFileCommand ?? (_openFileCommand = new DelegateCommand<Document>(OpenFile)); }
+        }
+
+        public void SetDocuments(long[] documentsId)
+        {
+            if(_cts != null)
+            {
+                _cts.Cancel();
+            }
+
+            lock(_syncDummy)
+            {
+                if(_cts != null)
+                {
+                    _cts.Dispose();
+                }
+                _cts = new CancellationTokenSource();
+            }
+            Task.Run(() =>
+                     {
+                         lock(_syncDummy)
+                         {
+                             SynchronizationContext.Post(c => DocumentsIsLoading = true, null);
+                             SynchronizationContext.Post(c => _documents.Clear(), null);
+                             var token = _cts.Token;
+
+                             try
+                             {
+                                 IQueryable<Document> docsEnumerated;
+                                 using(var ctx = new DdbContext())
+                                 {
+                                     var documents = ctx.Documents.Where(c => documentsId.Contains(c.Id));
+                                     if(AppConfigurationStorage.Storage.IndexUnsupportedFormats)
+                                     {
+                                         docsEnumerated = documents;
+                                     }
+                                     else
+                                     {
+                                         docsEnumerated = documents.Where(c => c.Type != DocumentType.Undefined);
+                                     }
+
+
+                                     if(!token.IsCancellationRequested)
+                                     {
+                                         foreach(var document in docsEnumerated)
+                                         {
+                                             SynchronizationContext.Send(c => _documents.Add((Document)c), document);
+                                         }
+                                     }
+                                 }
+                             }
+                             finally
+                             {
+                                 if(!token.IsCancellationRequested)
+                                 {
+                                     SynchronizationContext.Post(c => OnPropertyChanged("Documents"), null);
+                                     SynchronizationContext.Post(c => DocumentsIsLoading = false, null);
+                                 }
+                             }
+                         }
+                     }, _cts.Token);
         }
 
         private void OpenFile(Document doc)
@@ -123,12 +174,12 @@ namespace DocumentDb.Pages.ViewModel
 
         public void Refresh()
         {
-            if(IsBusy)
+            if(FolderTreeIsLoading)
             {
                 return;
             }
 
-            SynchronizationContext.Send(c => IsBusy = true, null);
+            SynchronizationContext.Send(c => FolderTreeIsLoading = true, null);
 
 
             Task.Run(() =>
@@ -151,7 +202,7 @@ namespace DocumentDb.Pages.ViewModel
                          }
                          finally
                          {
-                             SynchronizationContext.Send(c => IsBusy = false, null);
+                             SynchronizationContext.Send(c => FolderTreeIsLoading = false, null);
                          }
                      });
         }

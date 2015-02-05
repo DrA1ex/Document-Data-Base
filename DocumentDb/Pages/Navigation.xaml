@@ -25,10 +25,16 @@
         </Grid.ColumnDefinitions>
 
 
-        <Grid Grid.ColumnSpan="3" Margin="6" ZIndex="100500" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibility}}">
+        <Grid ZIndex="100500" Visibility="{Binding FolderTreeIsLoading, Converter={StaticResource BooleanToVisibility}}">
             <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3"/>
-            <mui:ModernProgressRing IsActive="{Binding IsBusy}" Width="80" Height="80"
-                                    Style="{DynamicResource CircleProgressRingStyle}" />
+            <mui:ModernProgressRing IsActive="{Binding FolderTreeIsLoading}" Width="80" Height="80"
+                                    Style="{DynamicResource WaveProgressRingStyle}" />
+        </Grid>
+
+        <Grid Grid.Column="2" ZIndex="100500" Visibility="{Binding DocumentsIsLoading, Converter={StaticResource BooleanToVisibility}}">
+            <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3"/>
+            <mui:ModernProgressRing IsActive="{Binding DocumentsIsLoading}" Width="80" Height="80"
+                                    Style="{DynamicResource WaveProgressRingStyle}" />
         </Grid>
 
         <TreeView Grid.Column="0" SelectedItemChanged="TreeView_OnSelectedItemChanged" Margin="6"
@@ -39,7 +45,7 @@
 
         <Rectangle Grid.Column="1" Fill="{DynamicResource SeparatorBackground}" Width="1" />
 
-        <ScrollViewer Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="DocumentsScrollViewer" Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemTemplate="{StaticResource DocumentItemTemplate}"
                           ItemsSource="{Binding Documents}" />
         </ScrollViewer>

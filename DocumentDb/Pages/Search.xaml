@@ -26,7 +26,7 @@
               Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibility}}">
             <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3" />
             <mui:ModernProgressRing IsActive="{Binding IsBusy}" Width="80" Height="80"
-                                    Style="{DynamicResource CircleProgressRingStyle}" />
+                                    Style="{DynamicResource WaveProgressRingStyle}" />
         </Grid>
 
         <Grid Grid.Row="0" Grid.Column="0">

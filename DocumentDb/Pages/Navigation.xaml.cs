@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Linq;
+using System.Windows;
 using DataLayer.Model;
 using DocumentDb.Pages.ViewModel;
 
@@ -25,7 +26,8 @@ namespace DocumentDb.Pages
             var folder = e.NewValue as Folder;
             if(folder != null)
             {
-                ViewModel.Documents = folder.Documents;
+                DocumentsScrollViewer.ScrollToTop();
+                ViewModel.SetDocuments(folder.Documents.Select(c => c.Id).ToArray());
             }
         }
     }
