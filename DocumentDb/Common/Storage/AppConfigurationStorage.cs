@@ -98,7 +98,7 @@ namespace DocumentDb.Common.Storage
         {
             var storage = DataStorage.GetStorage() ?? new AppConfiguration();
             var currentValue = storage.GetValueFromPath(propertyExpression);
-            if(currentValue.Equals(value))
+            if(currentValue == null || !currentValue.Equals(value))
             {
                 storage.SetValueFromPath(propertyExpression, value);
                 DataStorage.UpdateStorage(storage);
