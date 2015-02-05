@@ -28,6 +28,12 @@
             <DataTrigger Binding="{Binding Type}" Value="{x:Static model:DocumentType.Text}">
                 <Setter Property="IconData" Value="{StaticResource TextIcon}" />
             </DataTrigger>
+            <DataTrigger Binding="{Binding Type}" Value="{x:Static model:DocumentType.Audio}">
+                <Setter Property="IconData" Value="{StaticResource MusicIcon}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Type}" Value="{x:Static model:DocumentType.Video}">
+                <Setter Property="IconData" Value="{StaticResource VideoIcon}" />
+            </DataTrigger>
             <DataTrigger Binding="{Binding Type}" Value="{x:Static model:DocumentType.Undefined}">
                 <Setter Property="IconData" Value="{StaticResource GenericFileIcon}" />
             </DataTrigger>
@@ -55,7 +61,7 @@
                 Style="{StaticResource IconStyle}"
                 Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.OpenFileCommand}"
                 CommandParameter="{Binding}"
-                IconWidth="20" IconHeight="20" EllipseDiameter="38" EllipseStrokeThickness="1"
+                IconWidth="20" IconHeight="20" EllipseDiameter="38" EllipseStrokeThickness="2"
                 VerticalAlignment="Center" Margin="6"
                 Grid.Row="1"
                 Grid.Column="0" />
