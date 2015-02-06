@@ -12,6 +12,7 @@ using Common;
 using DataLayer;
 using DataLayer.Model;
 using DocumentDb.Common.Storage;
+using DocumentDb.Pages.Model;
 using FirstFloor.ModernUI.Presentation;
 using FirstFloor.ModernUI.Windows.Controls;
 
@@ -19,7 +20,6 @@ namespace DocumentDb.Pages.ViewModel
 {
     public class SearchViewModel : NotifyPropertyChanged
     {
-        private BaseFolder _baseCatalog;
         private DdbContext _context;
         private IEnumerable<Document> _documents;
         private ObservableCollection<Folder> _folders;
@@ -99,7 +99,7 @@ namespace DocumentDb.Pages.ViewModel
                 docName = docName.Replace(highlightTag, "");
             }
 
-            var fileToOpen = Path.Combine(_baseCatalog.FullPath, doc.ParentFolder.FullPath.TrimStart('\\'), docName);
+            var fileToOpen = Path.Combine(doc.FullPath, docName);
             try
             {
                 Process.Start(fileToOpen);
@@ -125,54 +125,17 @@ namespace DocumentDb.Pages.ViewModel
                      {
                          try
                          {
-                             _baseCatalog = Context.BaseFolders
-                                 .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
+                             var docs = FetchDocumentsForClause(SearchString);
 
-                             if(_baseCatalog != null)
+                             var folders = docs
+                                 .GroupBy(c => c.FullPath)
+                                 .Select(c => new Folder() { FullPath = c.Key, Documents = c.ToArray() });
+
+                             SynchronizationContext.Send(c => Folders.Clear(), null);
+
+                             foreach(var folder in folders)
                              {
-                                 var docs = FetchDocumentsForClause(SearchString);
-
-                                 var folders = docs.Select(c => c.ParentFolder)
-                                     .GroupBy(c => c.Id)
-                                     .Select(c =>
-                                             {
-                                                 var folder = c.First();
-                                                 folder.Documents = null;
-                                                 return folder;
-                                             })
-                                     .Where(c => c.FullPath.StartsWith(_baseCatalog.FullPath))
-                                     .ToList();
-
-                                 var resultFolders = new List<Folder>();
-
-                                 foreach(var doc in docs)
-                                 {
-                                     var folderForDoc = folders.SingleOrDefault(c => c.Id == doc.ParentFolder.Id);
-                                     if(folderForDoc == null)
-                                     {
-                                         continue;
-                                     }
-
-                                     if(folderForDoc.Documents == null)
-                                     {
-                                         folderForDoc.FullPath = folderForDoc.FullPath.Replace(_baseCatalog.FullPath, "");
-                                         folderForDoc.Documents = new List<Document>();
-                                     }
-
-                                     folderForDoc.Documents.Add(doc);
-
-                                     if(!resultFolders.Contains(folderForDoc))
-                                     {
-                                         resultFolders.Add(folderForDoc);
-                                     }
-                                 }
-
-                                 SynchronizationContext.Send(c => Folders.Clear(), null);
-
-                                 foreach(var folder in resultFolders)
-                                 {
-                                     SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
-                                 }
+                                 SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
                              }
                          }
                          finally

@@ -13,6 +13,7 @@ using DataLayer.Model;
 using DataLayer.Parser;
 using DocumentDb.Common;
 using DocumentDb.Common.Storage;
+using DocumentDb.Pages.Model;
 using FirstFloor.ModernUI.Presentation;
 using FirstFloor.ModernUI.Windows.Controls;
 
@@ -153,7 +154,7 @@ namespace DocumentDb.Pages.ViewModel
 
         private void OpenFile(Document doc)
         {
-            var fileToOpen = Path.Combine(doc.ParentFolder.FullPath, doc.Name);
+            var fileToOpen = Path.Combine(doc.FullPath, doc.Name);
 
             try
             {
@@ -189,16 +190,7 @@ namespace DocumentDb.Pages.ViewModel
                              SynchronizationContext.Send(c => Folders.Clear(), null);
                              RecreateContext();
 
-                             var baseCatalog = Context.BaseFolders
-                                 .SingleOrDefault(c => c.FullPath == AppConfigurationStorage.Storage.CatalogPath);
-
-                             if(baseCatalog != null)
-                             {
-                                 foreach(var folder in baseCatalog.Folders)
-                                 {
-                                     SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
-                                 }
-                             }
+                             //TODO: build folder tree
                          }
                          finally
                          {

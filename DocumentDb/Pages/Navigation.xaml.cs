@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Windows;
 using DataLayer.Model;
+using DocumentDb.Pages.Model;
 using DocumentDb.Pages.ViewModel;
 
 namespace DocumentDb.Pages
