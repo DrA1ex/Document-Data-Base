@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data.Entity;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -7,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Navigation;
 using Common;
 using DataLayer;
 using DataLayer.Model;
@@ -99,6 +102,8 @@ namespace DocumentDb.Pages.ViewModel
                 _cts.Cancel();
             }
 
+            SynchronizationContext.Send(c => DocumentsIsLoading = true, null);
+
             lock(_syncDummy)
             {
                 if(_cts != null)
@@ -107,19 +112,19 @@ namespace DocumentDb.Pages.ViewModel
                 }
                 _cts = new CancellationTokenSource();
             }
+
             Task.Run(() =>
                      {
                          lock(_syncDummy)
                          {
-                             SynchronizationContext.Post(c => DocumentsIsLoading = true, null);
-                             SynchronizationContext.Post(c => _documents.Clear(), null);
+                             SynchronizationContext.Send(c => _documents.Clear(), null);
                              var token = _cts.Token;
 
                              try
                              {
                                  using(var ctx = new DdbContext())
                                  {
-                                     var documents = ctx.Documents.Include("ParentFolder").Where(c => documentsId.Contains(c.Id));
+                                     var documents = ctx.Documents.Where(c => documentsId.Contains(c.Id));
                                      IQueryable<Document> docsEnumerated;
                                      if(AppConfigurationStorage.Storage.IndexUnsupportedFormats)
                                      {
@@ -131,11 +136,16 @@ namespace DocumentDb.Pages.ViewModel
                                      }
 
 
-                                     if(!token.IsCancellationRequested)
+
+                                     foreach(var document in docsEnumerated)
                                      {
-                                         foreach(var document in docsEnumerated)
+                                         if(!token.IsCancellationRequested)
                                          {
                                              SynchronizationContext.Send(c => _documents.Add((Document)c), document);
+                                         }
+                                         else
+                                         {
+                                             break;
                                          }
                                      }
                                  }
@@ -190,13 +200,86 @@ namespace DocumentDb.Pages.ViewModel
                              SynchronizationContext.Send(c => Folders.Clear(), null);
                              RecreateContext();
 
-                             //TODO: build folder tree
+                             var folders = BuildFolderTree();
+                             foreach(var folder in folders)
+                             {
+                                 SynchronizationContext.Send(c => Folders.Add(c as Folder), folder);
+                             }
                          }
                          finally
                          {
                              SynchronizationContext.Send(c => FolderTreeIsLoading = false, null);
                          }
                      });
+        }
+
+        public IEnumerable<Folder> BuildFolderTree()
+        {
+            var baseCatalog = AppConfigurationStorage.Storage.CatalogPath;
+
+            Document[] docs = null;
+            using(var ctx = new DdbContext())
+            {
+                docs = ctx.Documents
+                    .Where(c => c.FullPath.StartsWith(baseCatalog))
+                    .OrderBy(c => c.FullPath)
+                    .ToArray();
+            }
+
+            var folders = new List<Folder>();
+
+
+            if(docs.Any())
+            {
+                foreach(var document in docs)
+                {
+                    var folder = GetFolder(folders, baseCatalog, document.FullPath);
+                    folder.Documents.Add(document);
+                }
+            }
+
+            return folders;
+        }
+
+        private Folder GetFolder(List<Folder> folders, string basePath, string path)
+        {
+            var parts = path
+                .Replace(basePath, "")
+                .TrimStart(Path.DirectorySeparatorChar)
+                .Split(Path.DirectorySeparatorChar);
+
+            Folder lastFolder = null;
+            foreach(var part in parts)
+            {
+                var folder = lastFolder != null
+                    ? lastFolder.Folders.SingleOrDefault(c => c.Name == part)
+                    : folders.SingleOrDefault(c => c.Name == part);
+
+
+                if(folder == null)
+                {
+                    folder = new Folder()
+                             {
+                                 Name = part,
+                                 FullPath = Path.Combine(lastFolder != null ? lastFolder.FullPath : basePath, part),
+                                 Folders = new List<Folder>(),
+                                 Documents = new List<Document>()
+                             };
+
+                    if(lastFolder != null)
+                    {
+                        lastFolder.Folders.Add(folder);
+                    }
+                    else
+                    {
+                        folders.Add(folder);
+                    }
+                }
+
+                lastFolder = folder;
+            }
+
+            return lastFolder;
         }
     }
 }

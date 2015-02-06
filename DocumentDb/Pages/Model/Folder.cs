@@ -1,12 +1,14 @@
-﻿using DataLayer.Model;
+﻿using System.Collections.Generic;
+using System.Linq;
+using DataLayer.Model;
 using FirstFloor.ModernUI.Presentation;
 
 namespace DocumentDb.Pages.Model
 {
     public class Folder : NotifyPropertyChanged
     {
-        private Document[] _documents;
-        private Folder[] _folders;
+        private ICollection<Document> _documents;
+        private ICollection<Folder> _folders;
         private string _fullPath;
         private string _name;
 
@@ -30,7 +32,7 @@ namespace DocumentDb.Pages.Model
             }
         }
 
-        public Document[] Documents
+        public ICollection<Document> Documents
         {
             get { return _documents; }
             set
@@ -40,7 +42,7 @@ namespace DocumentDb.Pages.Model
             }
         }
 
-        public Folder[] Folders
+        public ICollection<Folder> Folders
         {
             get { return _folders; }
             set
@@ -48,6 +50,11 @@ namespace DocumentDb.Pages.Model
                 _folders = value;
                 OnPropertyChanged("Folders");
             }
+        }
+
+        public bool HasChildren
+        {
+            get { return Folders != null && Folders.Any() || Documents != null && Documents.Any(); }
         }
     }
 }

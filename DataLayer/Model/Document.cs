@@ -26,5 +26,8 @@ namespace DataLayer.Model
 
         [NotMapped]
         public string DocumentContent { get; set; }
+
+        [NotMapped]
+        public long Order { get; set; }
     }
 }

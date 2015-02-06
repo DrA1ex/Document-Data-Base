@@ -120,7 +120,6 @@ namespace DocumentDb.Pages.ViewModel
 
             SynchronizationContext.Send(c => IsBusy = true, null);
 
-
             Task.Run(() =>
                      {
                          try
@@ -129,7 +128,8 @@ namespace DocumentDb.Pages.ViewModel
 
                              var folders = docs
                                  .GroupBy(c => c.FullPath)
-                                 .Select(c => new Folder() { FullPath = c.Key, Documents = c.ToArray() });
+                                 .OrderBy(c => c.Min(x => x.Order))
+                                 .Select(c => new Folder() { FullPath = c.Key, Documents = c.OrderBy(x => x.Order).ToArray() });
 
                              SynchronizationContext.Send(c => Folders.Clear(), null);
 
@@ -155,17 +155,18 @@ namespace DocumentDb.Pages.ViewModel
             var docs = FtsService.Search(clause);
 
             var result = new List<Document>();
+            long currentIndex = 0;
 
             // ReSharper disable once PossibleMultipleEnumeration
             foreach(var document in docs)
             {
                 var existingDocument = Context.Documents
-                    .Include("ParentFolder")
                     .AsNoTracking()
                     .Single(c => c.Id == document.Id);
 
                 existingDocument.Name = document.Name;
                 existingDocument.DocumentContent = document.DocumentContent;
+                existingDocument.Order = ++currentIndex;
 
                 if(existingDocument.Type != DocumentType.Undefined || AppConfigurationStorage.Storage.IndexUnsupportedFormats)
                 {
