@@ -227,8 +227,9 @@ namespace DataLayer.Parser
         {
             var fileName = Path.GetFileName(filePath);
             var fileType = GetTypeForFileName(fileName);
+            var fullPath = Path.GetDirectoryName(filePath);
 
-            Document document = ctx.Documents.SingleOrDefault(c => c.FullPath == filePath && c.Name == fileName);
+            Document document = ctx.Documents.SingleOrDefault(c => c.FullPath == fullPath && c.Name == fileName);
 
             var result = new List<Document>();
 
@@ -239,7 +240,7 @@ namespace DataLayer.Parser
                            {
                                Name = fileName,
                                Type = fileType,
-                               FullPath = Path.GetDirectoryName(filePath),
+                               FullPath = fullPath,
                                Cached = false,
                                LastEditDateTime = lastEditTime
                            };
