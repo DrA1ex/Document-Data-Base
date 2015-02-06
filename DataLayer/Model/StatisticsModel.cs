@@ -24,7 +24,7 @@ namespace DataLayer.Model
         private float _ftsIndexSize;
         private bool _isBusy;
         private int _parsedDocumentsCount;
-        private int _parsedFoldersCount;
+        private readonly object _syncDummy = new object();
         private SynchronizationContext _synchronizationContext;
 
         private StatisticsModel()
@@ -52,23 +52,16 @@ namespace DataLayer.Model
             }
         }
 
-        public int ParsedFoldersCount
-        {
-            get { return _parsedFoldersCount; }
-            set
-            {
-                SynchronizationContext.Send(c => _parsedFoldersCount = (int)c, value);
-                SynchronizationContext.Post(c => OnPropertyChanged(), null);
-            }
-        }
-
         public int ParsedDocumentsCount
         {
             get { return _parsedDocumentsCount; }
             set
             {
-                SynchronizationContext.Send(c => _parsedDocumentsCount = (int)c, value);
-                SynchronizationContext.Post(c => OnPropertyChanged(), null);
+                lock(_syncDummy)
+                {
+                    _parsedDocumentsCount = value;
+                    SynchronizationContext.Send(c => OnPropertyChanged(), null);
+                }
             }
         }
 
@@ -128,7 +121,6 @@ namespace DataLayer.Model
                                          .Length / 1024.0f / 1024.0f;
                                  }
 
-                                 var parsedFolders = ctx.Folders.Count();
                                  var parsedDocs = ctx.Documents.Count();
                                  var cachedDocs = ctx.Documents.Count(c => c.Cached);
 
@@ -142,7 +134,6 @@ namespace DataLayer.Model
                                  if(refreshMethod == StatisticsModelRefreshMethod.UpdateAll || refreshMethod == StatisticsModelRefreshMethod.UpdateForDocumentMonitor)
                                  {
                                      SynchronizationContext.Post(c => ParsedDocumentsCount = (int)c, parsedDocs);
-                                     SynchronizationContext.Post(c => ParsedFoldersCount = (int)c, parsedFolders);
                                  }
                              }
                          }

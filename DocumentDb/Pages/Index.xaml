@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModel="clr-namespace:DocumentDb.Pages.ViewModel"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance viewModel:IndexingViewModel}"
-             d:DesignHeight="296" d:DesignWidth="707">
+             d:DesignHeight="285" d:DesignWidth="849">
     <Grid>
         <Grid.Resources>
             <Style TargetType="TextBlock">
@@ -28,7 +28,7 @@
         <TextBlock Text="Парсер документов" />
         <TextBlock Grid.Row="0" Grid.Column="1"
                    Text="{Binding DocumentParserState, Converter={StaticResource TypeDescriptionToString}}" />
-        <WrapPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+        <WrapPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Left">
             <Button Content="Остановить" Command="{Binding StopParserCommand}" Margin="6,3" />
             <Button Content="Запустить" Command="{Binding StartParserCommand}" Margin="6,3" />
             <Button Content="Приостановить" Command="{Binding PauseParserCommand}" Margin="6,3" />
@@ -39,6 +39,6 @@
         <TextBlock Grid.Row="1" Grid.Column="1"
                    Text="{Binding DocumentMonitorState, Converter={StaticResource TypeDescriptionToString}}" />
         <Button Grid.Row="1" Grid.Column="2" Content="Перестроить индекс" Command="{Binding UpdateIndexCommand}"
-                HorizontalAlignment="Right" Margin="6,3" />
+                HorizontalAlignment="Left" Margin="6,3" />
     </Grid>
 </UserControl>

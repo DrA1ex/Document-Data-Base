@@ -116,15 +116,13 @@
     <Compile Include="Attributes\ExtensionAttribute.cs" />
     <Compile Include="DdbContext.cs" />
     <Compile Include="FtsService.cs" />
-    <Compile Include="Migrations\201501281550182_Init.cs" />
-    <Compile Include="Migrations\201501281550182_Init.Designer.cs">
-      <DependentUpon>201501281550182_Init.cs</DependentUpon>
+    <Compile Include="Migrations\201502062224073_Init.cs" />
+    <Compile Include="Migrations\201502062224073_Init.Designer.cs">
+      <DependentUpon>201502062224073_Init.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
-    <Compile Include="Model\BaseFolder.cs" />
     <Compile Include="Model\Document.cs" />
     <Compile Include="Model\DocumentType.cs" />
-    <Compile Include="Model\Folder.cs" />
     <Compile Include="Model\StatisticsModel.cs" />
     <Compile Include="Parser\ContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\AudioContentExtractor.cs" />
@@ -142,15 +140,15 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\201501281550182_Init.resx">
-      <DependentUpon>201501281550182_Init.cs</DependentUpon>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">
       <Project>{05655E26-295C-4ACE-94AC-B132A7D7A36E}</Project>
       <Name>Common</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\201502062224073_Init.resx">
+      <DependentUpon>201502062224073_Init.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

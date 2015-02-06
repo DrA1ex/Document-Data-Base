@@ -3,9 +3,9 @@
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     mc:Ignorable="d"
-                    xmlns:model="clr-namespace:DataLayer.Model;assembly=DataLayer">
+                    xmlns:model="clr-namespace:DocumentDb.Pages.Model">
 
-    <Style x:Key="FolderChidlsStyle" TargetType="TextBlock">
+    <Style x:Key="FolderChildrenStyle" TargetType="TextBlock">
         <Style.Triggers>
             <DataTrigger d:DataContext="{d:DesignInstance model:Folder}" Binding="{Binding HasChildren}" Value="False">
                 <Setter Property="Foreground" Value="{DynamicResource WindowTextReadOnly}"/>
@@ -15,8 +15,8 @@
 
     <HierarchicalDataTemplate DataType="{x:Type model:Folder}"
                               ItemsSource="{Binding Folders}">
-        <TextBlock Text="{Binding Label}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                   ToolTip="{Binding Label}"
-                   Style="{StaticResource FolderChidlsStyle}" />
+        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                   ToolTip="{Binding Name}"
+                   Style="{StaticResource FolderChildrenStyle}" />
     </HierarchicalDataTemplate>
 </ResourceDictionary>

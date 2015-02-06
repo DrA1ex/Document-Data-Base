@@ -13,7 +13,7 @@ namespace DataLayer.Migrations
         
         string IMigrationMetadata.Id
         {
-            get { return "201501281550182_Init"; }
+            get { return "201502062224073_Init"; }
         }
         
         string IMigrationMetadata.Source
