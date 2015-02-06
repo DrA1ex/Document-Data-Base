@@ -104,12 +104,12 @@ namespace DataLayer.Parser
                 return;
             }
 
-            SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
             Task.Run(() =>
                      {
                          ++_waitingThreads;
                          lock(_syncDummy)
                          {
+                             SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
                              try
                              {
                                  using(var ctx = new DdbContext())
