@@ -11,11 +11,14 @@ namespace DataLayer.Model
         public long Id { get; set; }
 
         [Required]
+        [Index]
         public string Name { get; set; }
 
         [Required]
         public DocumentType Type { get; set; }
 
+        [Required]
+        [Index]
         public string FullPath { get; set; }
 
         [Index]
