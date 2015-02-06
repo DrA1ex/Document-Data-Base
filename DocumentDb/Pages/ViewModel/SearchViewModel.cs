@@ -202,7 +202,7 @@ namespace DocumentDb.Pages.ViewModel
                     .Single(c => c.Id == document.Id);
 
                 existingDocument.Name = document.Name;
-                existingDocument.FtsCaptures = document.FtsCaptures;
+                existingDocument.DocumentContent = document.DocumentContent;
 
                 if(existingDocument.Type != DocumentType.Undefined || AppConfigurationStorage.Storage.IndexUnsupportedFormats)
                 {

@@ -27,7 +27,7 @@ namespace DataLayer.Parser
 
             if(extractor != null)
             {
-                return extractor.GetContent(Path.Combine(doc.ParentFolder.FullPath, doc.Name));
+                return extractor.GetContent(Path.Combine(doc.FullPath, doc.Name));
             }
 
             return String.Empty;

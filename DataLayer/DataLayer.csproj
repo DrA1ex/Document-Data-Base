@@ -120,11 +120,13 @@
     <Compile Include="Migrations\201501281550182_Init.Designer.cs">
       <DependentUpon>201501281550182_Init.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201502062044437_StoreOnlyDocuments.cs" />
+    <Compile Include="Migrations\201502062044437_StoreOnlyDocuments.Designer.cs">
+      <DependentUpon>201502062044437_StoreOnlyDocuments.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
-    <Compile Include="Model\BaseFolder.cs" />
     <Compile Include="Model\Document.cs" />
     <Compile Include="Model\DocumentType.cs" />
-    <Compile Include="Model\Folder.cs" />
     <Compile Include="Model\StatisticsModel.cs" />
     <Compile Include="Parser\ContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\AudioContentExtractor.cs" />
@@ -144,6 +146,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\201501281550182_Init.resx">
       <DependentUpon>201501281550182_Init.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201502062044437_StoreOnlyDocuments.resx">
+      <DependentUpon>201502062044437_StoreOnlyDocuments.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

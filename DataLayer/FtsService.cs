@@ -121,7 +121,7 @@ namespace DataLayer
                    {
                        Id = id,
                        Name = highlighter.GetBestFragment(Analyzer, "Name", name) ?? name,
-                       FtsCaptures = highlighter.GetBestFragment(Analyzer, "Content", content) ?? (String.Join(" ", content.Split(' ').Take(10)) + "...")
+                       DocumentContent = highlighter.GetBestFragment(Analyzer, "Content", content) ?? (String.Join(" ", content.Split(' ').Take(10)) + "...")
                    };
         }
 

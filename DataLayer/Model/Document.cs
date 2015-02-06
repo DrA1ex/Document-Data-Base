@@ -16,18 +16,15 @@ namespace DataLayer.Model
         [Required]
         public DocumentType Type { get; set; }
 
-        public long ParentFolderId { get; set; }
-
-        [Required]
-        public Folder ParentFolder { get; set; }
+        public string FullPath { get; set; }
 
         [Index]
         public DateTime LastEditDateTime { get; set; }
 
         [Index]
         public bool Cached { get; set; }
-        
+
         [NotMapped]
-        public string FtsCaptures { get; set; }
+        public string DocumentContent { get; set; }
     }
 }
