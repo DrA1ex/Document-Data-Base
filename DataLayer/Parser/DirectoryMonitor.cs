@@ -15,12 +15,9 @@ namespace DataLayer.Parser
 {
     public enum DocumentMonitorState
     {
-        [Description("Ожидание")]
-        Idle,
-        [Description("Индексирование")]
-        Running,
-        [Description("Очистка")]
-        Deleting
+        [Description("Ожидание")] Idle,
+        [Description("Индексирование")] Running,
+        [Description("Очистка")] Deleting
     }
 
     public class DirectoryMonitor : INotifyPropertyChanged
@@ -56,9 +53,9 @@ namespace DataLayer.Parser
         {
             // ReSharper disable once CoVariantArrayConversion
             Types = ((DocumentType[])Enum.GetValues(typeof(DocumentType)))
-                .Select(c => new { Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c })
+                .Select(c => new {Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c})
                 .Where(c => c.Attribute != null)
-                .Select(c => new { c.Attribute.Extensions, c.Value })
+                .Select(c => new {c.Attribute.Extensions, c.Value})
                 .ToArray();
         }
 
@@ -115,12 +112,13 @@ namespace DataLayer.Parser
                              SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
                              try
                              {
-
                                  var directories = Directory.GetDirectories(BasePath);
-                                 Parallel.ForEach(directories, s =>
+
+                                 //Parallel.ForEach(directories, s => { ProcessDirectory(Path.GetFullPath(s)); });
+                                 foreach(var s in directories)
                                  {
                                      ProcessDirectory(Path.GetFullPath(s));
-                                 });
+                                 }
 
                                  using(var ctx = new DdbContext())
                                  {
@@ -182,7 +180,7 @@ namespace DataLayer.Parser
                 Logger.Instance.Error("Не удалось сорханить документы для папки '{0}': {1}", path, (object)e);
             }
 
-            string[] directories = { };
+            string[] directories = {};
 
             try
             {
@@ -193,15 +191,16 @@ namespace DataLayer.Parser
                 Logger.Instance.Warn("Не удалось получить субдиректории каталога '{0}': {1}", path, e);
             }
 
-            Parallel.ForEach(directories, s =>
-                                          {
-                                              ProcessDirectory(Path.GetFullPath(s));
-                                          });
+            //Parallel.ForEach(directories, s => { ProcessDirectory(Path.GetFullPath(s)); });
+            foreach(var s in directories)
+            {
+                ProcessDirectory(Path.GetFullPath(s));
+            }
         }
 
         private void ProcessFilesInFolder(DdbContext ctx, string path)
         {
-            string[] filesInDirectory = { };
+            string[] filesInDirectory = {};
             try
             {
                 filesInDirectory = Directory.GetFiles(path);
@@ -211,15 +210,16 @@ namespace DataLayer.Parser
                 Logger.Instance.Warn("Не удалось получить файлы каталога '{0}': {1}", path, e);
             }
 
+            var docsInDirectory = new List<Document>();
             foreach(var file in filesInDirectory)
             {
                 var docs = ProcessFileInternal(ctx, file);
-                // ReSharper disable PossibleMultipleEnumeration
-                if(docs.Any())
-                {
-                    ctx.Documents.AddRange(docs);
-                }
-                // ReSharper restore PossibleMultipleEnumeration
+                docsInDirectory.AddRange(docs);
+            }
+
+            if(docsInDirectory.Any())
+            {
+                ctx.Documents.AddRange(docsInDirectory);
             }
         }
 
@@ -229,7 +229,7 @@ namespace DataLayer.Parser
             var fileType = GetTypeForFileName(fileName);
             var fullPath = Path.GetDirectoryName(filePath);
 
-            Document document = ctx.Documents.SingleOrDefault(c => c.FullPath == fullPath && c.Name == fileName);
+            var document = ctx.Documents.SingleOrDefault(c => c.FullPath == fullPath && c.Name == fileName);
 
             var result = new List<Document>();
 
