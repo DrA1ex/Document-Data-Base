@@ -11,23 +11,26 @@ namespace DataLayer.Model
         public long Id { get; set; }
 
         [Required]
+        [Index]
         public string Name { get; set; }
 
         [Required]
         public DocumentType Type { get; set; }
 
-        public long ParentFolderId { get; set; }
-
         [Required]
-        public Folder ParentFolder { get; set; }
+        [Index]
+        public string FullPath { get; set; }
 
         [Index]
         public DateTime LastEditDateTime { get; set; }
 
         [Index]
         public bool Cached { get; set; }
-        
+
         [NotMapped]
-        public string FtsCaptures { get; set; }
+        public string DocumentContent { get; set; }
+
+        [NotMapped]
+        public long Order { get; set; }
     }
 }

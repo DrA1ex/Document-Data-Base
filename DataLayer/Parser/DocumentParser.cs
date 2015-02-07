@@ -87,7 +87,6 @@ namespace DataLayer.Parser
                     using(var ctx = new DdbContext())
                     {
                         var docsToParse = ctx.Documents
-                            .Include("ParentFolder")
                             .Where(c => c.Cached == false);
 
                         foreach(var document in docsToParse)

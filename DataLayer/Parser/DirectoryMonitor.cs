@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Entity;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -13,15 +15,13 @@ namespace DataLayer.Parser
 {
     public enum DocumentMonitorState
     {
-        [Description("Ожидание")]
-        Idle,
-        [Description("Выполняется")]
-        Running
+        [Description("Ожидание")] Idle,
+        [Description("Индексирование")] Running,
+        [Description("Очистка")] Deleting
     }
 
     public class DirectoryMonitor : INotifyPropertyChanged
     {
-        private const long DateTimeTicksRound = 10000000;
         private static readonly dynamic[] Types;
         private string _basePath;
         private DocumentMonitorState _state;
@@ -53,9 +53,9 @@ namespace DataLayer.Parser
         {
             // ReSharper disable once CoVariantArrayConversion
             Types = ((DocumentType[])Enum.GetValues(typeof(DocumentType)))
-                .Select(c => new { Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c })
+                .Select(c => new {Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c})
                 .Where(c => c.Attribute != null)
-                .Select(c => new { c.Attribute.Extensions, c.Value })
+                .Select(c => new {c.Attribute.Extensions, c.Value})
                 .ToArray();
         }
 
@@ -112,27 +112,21 @@ namespace DataLayer.Parser
                              SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
                              try
                              {
+                                 var directories = Directory.GetDirectories(BasePath);
+
+                                 //Parallel.ForEach(directories, s => { ProcessDirectory(Path.GetFullPath(s)); });
+                                 foreach(var s in directories)
+                                 {
+                                     ProcessDirectory(Path.GetFullPath(s));
+                                 }
+
                                  using(var ctx = new DdbContext())
                                  {
-                                     var baseDir = ctx.BaseFolders.SingleOrDefault(c => c.FullPath == BasePath);
-                                     if(baseDir == null)
-                                     {
-                                         baseDir = new BaseFolder { FullPath = BasePath };
-                                         ctx.BaseFolders.Add(baseDir);
-                                         ctx.SaveChanges();
-                                     }
+                                     SynchronizationContext.Send(c => State = DocumentMonitorState.Deleting, null);
 
-                                     var directories = Directory.GetDirectories(BasePath);
-                                     foreach(var directory in directories)
+                                     foreach(var document in ctx.Documents)
                                      {
-                                         ProcessDirectory(ctx, baseDir, Path.GetFullPath(directory));
-                                     }
-
-                                     ctx.SaveChanges();
-
-                                     foreach(var document in ctx.Documents.Include("ParentFolder"))
-                                     {
-                                         var path = Path.Combine(document.ParentFolder.FullPath, document.Name);
+                                         var path = Path.Combine(document.FullPath, document.Name);
                                          if(!File.Exists(path))
                                          {
                                              ctx.Documents.Remove(document);
@@ -142,15 +136,6 @@ namespace DataLayer.Parser
                                                  FtsService.ClearLuceneIndexRecord(document.Id);
                                                  StatisticsModel.Instance.DocumentsInCacheCount -= 1;
                                              }
-                                         }
-                                     }
-
-                                     foreach(var folder in ctx.Folders)
-                                     {
-                                         if(!Directory.Exists(folder.FullPath))
-                                         {
-                                             ctx.Folders.Remove(folder);
-                                             StatisticsModel.Instance.ParsedFoldersCount -= 1;
                                          }
                                      }
 
@@ -172,53 +157,30 @@ namespace DataLayer.Parser
                      });
         }
 
-        private void ProcessDirectory(DdbContext ctx, BaseFolder baseFolder, string path, Folder parentFolder = null)
+        private void ProcessDirectory(string path)
         {
             if(!Directory.Exists(path))
             {
                 return;
             }
 
-            Folder folder;
-            if(parentFolder != null && parentFolder.Folders != null && parentFolder.Folders.Any())
+            try
             {
-                folder = parentFolder.Folders.SingleOrDefault(c => c.FullPath == path);
-            }
-            else if(baseFolder.Folders != null && baseFolder.Folders.Any())
-            {
-                folder = baseFolder.Folders.SingleOrDefault(c => c.FullPath == path);
-            }
-            else
-            {
-                folder = ctx.Folders.SingleOrDefault(c => c.FullPath == path);
-            }
-
-            if(folder == null)
-            {
-                folder = new Folder
-                         {
-                             FullPath = path,
-                             Label = Path.GetFileName(path)
-                         };
-
-                StatisticsModel.Instance.ParsedFoldersCount += 1;
-
-                if(parentFolder == null)
+                using(var ctx = new DdbContext())
                 {
-                    folder.BaseFolder = baseFolder;
-                    ctx.Folders.Add(folder);
-                }
-                else
-                {
-                    folder.Parent = parentFolder;
-                    ctx.Folders.Add(folder);
+                    ctx.Configuration.AutoDetectChangesEnabled = false;
+                    ctx.Configuration.ValidateOnSaveEnabled = false;
+
+                    ProcessFilesInFolder(ctx, path);
+                    ctx.SaveChanges();
                 }
             }
+            catch(Exception e)
+            {
+                Logger.Instance.Error("Не удалось сорханить документы для папки '{0}': {1}", path, (object)e);
+            }
 
-
-            ProcessFilesInFolder(ctx, folder);
-
-            string[] directories = { };
+            string[] directories = {};
 
             try
             {
@@ -229,42 +191,47 @@ namespace DataLayer.Parser
                 Logger.Instance.Warn("Не удалось получить субдиректории каталога '{0}': {1}", path, e);
             }
 
-            foreach(var directory in directories)
+            //Parallel.ForEach(directories, s => { ProcessDirectory(Path.GetFullPath(s)); });
+            foreach(var s in directories)
             {
-                ProcessDirectory(ctx, baseFolder, Path.GetFullPath(directory), folder);
+                ProcessDirectory(Path.GetFullPath(s));
             }
         }
 
-        private void ProcessFilesInFolder(DdbContext ctx, Folder folder)
+        private void ProcessFilesInFolder(DdbContext ctx, string path)
         {
-            string[] filesInDirectory = { };
+            string[] filesInDirectory = {};
             try
             {
-                filesInDirectory = Directory.GetFiles(folder.FullPath);
+                filesInDirectory = Directory.GetFiles(path);
             }
             catch(DirectoryNotFoundException e)
             {
-                Logger.Instance.Warn("Не удалось получить файлы каталога '{0}': {1}", folder.FullPath, e);
+                Logger.Instance.Warn("Не удалось получить файлы каталога '{0}': {1}", path, e);
             }
 
+            var docsInDirectory = new List<Document>();
             foreach(var file in filesInDirectory)
             {
-                ProcessFileInternal(ctx, folder, file);
+                var docs = ProcessFileInternal(ctx, file);
+                docsInDirectory.AddRange(docs);
             }
 
-            ctx.SaveChanges();
+            if(docsInDirectory.Any())
+            {
+                ctx.Documents.AddRange(docsInDirectory);
+            }
         }
 
-        private void ProcessFileInternal(DdbContext ctx, Folder folder, string filePath)
+        private IEnumerable<Document> ProcessFileInternal(DdbContext ctx, string filePath)
         {
             var fileName = Path.GetFileName(filePath);
             var fileType = GetTypeForFileName(fileName);
+            var fullPath = Path.GetDirectoryName(filePath);
 
-            Document document = null;
-            if(folder.Folders != null)
-            {
-                document = folder.Documents.SingleOrDefault(c => c.Name == Path.GetFileName(fileName));
-            }
+            var document = ctx.Documents.SingleOrDefault(c => c.FullPath == fullPath && c.Name == fileName);
+
+            var result = new List<Document>();
 
             var lastEditTime = File.GetLastWriteTime(filePath);
             if(document == null)
@@ -273,20 +240,24 @@ namespace DataLayer.Parser
                            {
                                Name = fileName,
                                Type = fileType,
-                               ParentFolder = folder,
+                               FullPath = fullPath,
                                Cached = false,
                                LastEditDateTime = lastEditTime
                            };
 
                 StatisticsModel.Instance.ParsedDocumentsCount += 1;
 
-                ctx.Documents.Add(document);
+                result.Add(document);
             }
-            else if(lastEditTime.Ticks / DateTimeTicksRound != document.LastEditDateTime.Ticks / DateTimeTicksRound) //SQL Server compact lose precision
+            else if((lastEditTime - document.LastEditDateTime).TotalSeconds > 1) //SQL Server compact lose precision
             {
                 document.LastEditDateTime = lastEditTime;
                 document.Cached = false;
+
+                ctx.Entry(document).State = EntityState.Modified;
             }
+
+            return result;
         }
 
         private DocumentType GetTypeForFileName(string fileName)

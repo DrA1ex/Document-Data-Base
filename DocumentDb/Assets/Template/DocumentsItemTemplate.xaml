@@ -8,7 +8,7 @@
 
     <model:Document x:Key="DocumentDesignData"
                     Name="Уголовный кодекс. Статья 38. [b]Изнасилование[/b], совершенное группой лиц.docx" Type="Pdf"
-                    FtsCaptures="Бла-бла-бла изнасилование [b]каратеся[/b] тремя годами лишения свободы..."
+                    DocumentContent="Бла-бла-бла изнасилование [b]каратеся[/b] тремя годами лишения свободы..."
                     Cached="True" LastEditDateTime="2014-12-23 15:45" />
 
     <Style x:Key="IconStyle" TargetType="mui:ModernButton">
@@ -78,9 +78,9 @@
                              BBCode="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}}"
                              TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"/>
 
-            <mui:BBCodeBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding FtsCaptures}"
+            <mui:BBCodeBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding DocumentContent}"
                              TextAlignment="Justify" Margin="6"
-                             Visibility="{Binding FtsCaptures, Converter={StaticResource StringEmptyToVisibility}}"/>
+                             Visibility="{Binding DocumentContent, Converter={StaticResource StringEmptyToVisibility}}"/>
 
             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
                 <Grid.Resources>
