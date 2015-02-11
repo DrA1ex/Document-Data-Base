@@ -98,9 +98,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="{Binding Cached, Converter={StaticResource CacheStateConverter}}" />
-                <Path Grid.Column="2" Data="{StaticResource TimeIcon}" Fill="{DynamicResource WindowBorder}"
-                      Height="18"
-                      Width="17" Stretch="Fill" VerticalAlignment="Center" Margin="6" />
+                
                 <TextBlock Grid.Column="3"
                            Text="{Binding LastEditDateTime, Converter={StaticResource DateTimeConverter}}" />
             </Grid>
