@@ -4,7 +4,8 @@
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     mc:Ignorable="d"
                     xmlns:model="clr-namespace:DataLayer.Model;assembly=DataLayer"
-                    xmlns:mui="http://firstfloorsoftware.com/ModernUI">
+                    xmlns:mui="http://firstfloorsoftware.com/ModernUI"
+                    xmlns:viewModel="clr-namespace:DocumentDb.Pages.ViewModel">
 
     <model:Document x:Key="DocumentDesignData"
                     Name="Уголовный кодекс. Статья 38. [b]Изнасилование[/b], совершенное группой лиц.docx" Type="Pdf"
@@ -59,7 +60,7 @@
             <mui:ModernButton
                 ToolTip="{Binding Type, Converter={StaticResource TypeDescriptionToString}}"
                 Style="{StaticResource IconStyle}"
-                Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.OpenFileCommand}"
+                Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.(viewModel:NavigationViewModel.OpenFileCommand)}"
                 CommandParameter="{Binding}"
                 IconWidth="20" IconHeight="20" EllipseDiameter="38" EllipseStrokeThickness="2"
                 VerticalAlignment="Center" Margin="6"
@@ -76,11 +77,11 @@
             <mui:BBCodeBlock Grid.Row="1" Grid.Column="1" Margin="6" VerticalAlignment="Center"
                              FontSize="22"
                              BBCode="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}}"
-                             TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"/>
+                             TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis" />
 
             <mui:BBCodeBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding DocumentContent}"
-                             TextAlignment="Justify" Margin="6"
-                             Visibility="{Binding DocumentContent, Converter={StaticResource StringEmptyToVisibility}}"/>
+                             Margin="6"
+                             Visibility="{Binding DocumentContent, Converter={StaticResource StringEmptyToVisibility}}" />
 
             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
                 <Grid.Resources>
@@ -98,7 +99,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="{Binding Cached, Converter={StaticResource CacheStateConverter}}" />
-                
+
                 <TextBlock Grid.Column="3"
                            Text="{Binding LastEditDateTime, Converter={StaticResource DateTimeConverter}}" />
             </Grid>

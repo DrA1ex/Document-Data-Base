@@ -2,6 +2,7 @@
 using System.Linq.Expressions;
 using System.Windows.Media;
 using Common.Utils;
+using DataLayer;
 using DocumentDb.Common.Storage.Model;
 using FirstFloor.ModernUI.Presentation;
 
@@ -37,7 +38,9 @@ namespace DocumentDb.Common.Storage
         public Color AccentColor
         {
             get { return GetterForModelProperty(c => c.AccentColor); }
-            set { SetterForModelProperty(c => c.AccentColor, value); }
+            set { SetterForModelProperty(c => c.AccentColor, value);
+                FtsService.HighlightingColor = value;
+            }
         }
 
         public FontSize FontSize
@@ -70,6 +73,7 @@ namespace DocumentDb.Common.Storage
             if(AccentColor != default(Color))
             {
                 AppearanceManager.Current.AccentColor = AccentColor;
+                FtsService.HighlightingColor = AccentColor;
             }
 
             var today = DateTime.Today;
