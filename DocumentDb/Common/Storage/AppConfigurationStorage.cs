@@ -23,12 +23,6 @@ namespace DocumentDb.Common.Storage
             set { SetterForModelProperty(c => c.CatalogPath, value); }
         }
 
-        public string Palette
-        {
-            get { return GetterForModelProperty(c => c.Palette); }
-            set { SetterForModelProperty(c => c.Palette, value); }
-        }
-
         public Uri Theme
         {
             get { return GetterForModelProperty(c => c.Theme); }
@@ -81,7 +75,6 @@ namespace DocumentDb.Common.Storage
             {
                 AppearanceManager.Current.ThemeSource = Theme = new Uri("/DocumentDb;component/Assets/ModernUI.Valentine.xaml", UriKind.Relative);
                 AppearanceManager.Current.AccentColor = AccentColor = Color.FromRgb(233, 30, 99);
-                Palette = "Material";
                 ValentineDayThemeUnlocked = true;
             }
         }
