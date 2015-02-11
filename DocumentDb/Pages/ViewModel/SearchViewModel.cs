@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Common;
+using Common.Utils;
 using DataLayer;
 using DataLayer.Model;
 using DocumentDb.Common.Storage;
@@ -162,7 +163,14 @@ namespace DocumentDb.Pages.ViewModel
             {
                 var existingDocument = Context.Documents
                     .AsNoTracking()
-                    .Single(c => c.Id == document.Id);
+                    .SingleOrDefault(c => c.Id == document.Id);
+
+                if(existingDocument == null)
+                {
+                    Logger.Instance.Warn("Документ с кодом {0} все еще присутствует в иднексе, но отсутствует в базе данных. Будет выполнена попытка удаления", document.Id);
+                    FtsService.ClearLuceneIndexRecord(document.Id);
+                    continue;
+                }
 
                 existingDocument.Name = document.Name;
                 existingDocument.DocumentContent = document.DocumentContent;
