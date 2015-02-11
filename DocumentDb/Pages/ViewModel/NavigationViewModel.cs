@@ -67,6 +67,20 @@ namespace DocumentDb.Pages.ViewModel
             }
         }
 
+        public string CollectionName
+        {
+            get
+            {
+                var catalogPath = AppConfigurationStorage.Storage.CatalogPath;
+                if(!String.IsNullOrWhiteSpace(catalogPath))
+                {
+                    return String.Format("Коллекция \"{0}\"", catalogPath.Split(Path.DirectorySeparatorChar).Last());
+                }
+
+                return "Каталог не выбран";
+            }
+        }
+
         public SynchronizationContext SynchronizationContext
         {
             get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
@@ -140,6 +154,7 @@ namespace DocumentDb.Pages.ViewModel
                                  if(!token.IsCancellationRequested)
                                  {
                                      SynchronizationContext.Post(c => OnPropertyChanged("Documents"), null);
+                                     SynchronizationContext.Post(c => OnPropertyChanged("CollectionName"), null);
                                      SynchronizationContext.Post(c => DocumentsIsLoading = false, null);
                                  }
                              }
