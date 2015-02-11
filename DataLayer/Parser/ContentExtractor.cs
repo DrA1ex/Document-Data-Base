@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Common.Utils;
 using DataLayer.Model;
 using DataLayer.Parser.ContentExtractors.Base;
@@ -22,7 +23,7 @@ namespace DataLayer.Parser
                 .ToArray();
         }
 
-        public static string GetContent(Document doc)
+        public static string GetContent(Document doc, CancellationToken token)
         {
             var extractor = Extractors.FirstOrDefault(c => c.SupporterTypes.Contains(doc.Type));
 
@@ -30,7 +31,7 @@ namespace DataLayer.Parser
             {
                 try
                 {
-                    return extractor.GetContent(Path.Combine(doc.FullPath, doc.Name));
+                    return extractor.GetContent(Path.Combine(doc.FullPath, doc.Name), token);
                 }
                 catch(Exception e)
                 {

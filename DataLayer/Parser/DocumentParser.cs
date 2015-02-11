@@ -104,7 +104,7 @@ namespace DataLayer.Parser
                             .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
                             .WithMergeOptions(ParallelMergeOptions.NotBuffered)
                             .WithCancellation(ct)
-                            .Select(c => new { Document = c, Content = ContentExtractor.GetContent(c) });
+                            .Select(c => new { Document = c, Content = ContentExtractor.GetContent(c, ct) });
 
                         try
                         {

@@ -1,4 +1,5 @@
-﻿using DataLayer.Model;
+﻿using System.Threading;
+using DataLayer.Model;
 
 namespace DataLayer.Parser.ContentExtractors.Base
 {
@@ -6,6 +7,6 @@ namespace DataLayer.Parser.ContentExtractors.Base
     {
         DocumentType[] SupporterTypes { get; }
 
-        string GetContent(string filePath);
+        string GetContent(string filePath, CancellationToken token);
     }
 }
