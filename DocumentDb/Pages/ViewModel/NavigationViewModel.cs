@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Data.Entity;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -9,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Navigation;
 using Common;
 using DataLayer;
 using DataLayer.Model;
@@ -24,7 +22,6 @@ namespace DocumentDb.Pages.ViewModel
 {
     public class NavigationViewModel : NotifyPropertyChanged
     {
-        private DdbContext _context;
         private CancellationTokenSource _cts;
         private ObservableCollection<Document> _documents;
         private bool _documentsIsLoading;
@@ -75,11 +72,6 @@ namespace DocumentDb.Pages.ViewModel
             get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
         }
 
-        public DdbContext Context
-        {
-            get { return _context ?? (_context = new DdbContext()); }
-        }
-
         public ObservableCollection<Folder> Folders
         {
             get { return _folders ?? (_folders = new ObservableCollection<Folder>()); }
@@ -125,16 +117,9 @@ namespace DocumentDb.Pages.ViewModel
                                  using(var ctx = new DdbContext())
                                  {
                                      var documents = ctx.Documents.Where(c => documentsId.Contains(c.Id));
-                                     IQueryable<Document> docsEnumerated;
-                                     if(AppConfigurationStorage.Storage.IndexUnsupportedFormats)
-                                     {
-                                         docsEnumerated = documents;
-                                     }
-                                     else
-                                     {
-                                         docsEnumerated = documents.Where(c => c.Type != DocumentType.Undefined);
-                                     }
-
+                                     var docsEnumerated = AppConfigurationStorage.Storage.IndexUnsupportedFormats
+                                         ? documents
+                                         : documents.Where(c => c.Type != DocumentType.Undefined);
 
 
                                      foreach(var document in docsEnumerated)
@@ -177,12 +162,6 @@ namespace DocumentDb.Pages.ViewModel
             }
         }
 
-        public void RecreateContext()
-        {
-            Context.Dispose();
-            _context = null;
-        }
-
         public void Refresh()
         {
             if(FolderTreeIsLoading)
@@ -198,7 +177,6 @@ namespace DocumentDb.Pages.ViewModel
                          try
                          {
                              SynchronizationContext.Send(c => Folders.Clear(), null);
-                             RecreateContext();
 
                              var folders = BuildFolderTree();
                              foreach(var folder in folders)
@@ -217,23 +195,22 @@ namespace DocumentDb.Pages.ViewModel
         {
             var baseCatalog = AppConfigurationStorage.Storage.CatalogPath;
 
-            Document[] docs = null;
+            Document[] docs;
             using(var ctx = new DdbContext())
             {
                 docs = ctx.Documents
                     .Where(c => c.FullPath.StartsWith(baseCatalog))
-                    .OrderBy(c => c.FullPath)
-                    .ToArray();
+                    .OrderBy(c => c.FullPath).ToArray();
             }
 
             var folders = new List<Folder>();
 
-
             if(docs.Any())
             {
+                var searchMap = new Dictionary<string, Folder>();
                 foreach(var document in docs)
                 {
-                    var folder = GetFolder(folders, baseCatalog, document.FullPath);
+                    var folder = GetFolder(folders, searchMap, baseCatalog, document.FullPath);
                     folder.Documents.Add(document);
                 }
             }
@@ -241,8 +218,14 @@ namespace DocumentDb.Pages.ViewModel
             return folders;
         }
 
-        private Folder GetFolder(List<Folder> folders, string basePath, string path)
+        private Folder GetFolder(List<Folder> folders, IDictionary<string, Folder> searchMap, string basePath, string path)
         {
+            if(searchMap.ContainsKey(path))
+            {
+                var existingFolder = searchMap[path];
+                return existingFolder;
+            }
+
             var parts = path
                 .Replace(basePath, "")
                 .TrimStart(Path.DirectorySeparatorChar)
@@ -251,20 +234,34 @@ namespace DocumentDb.Pages.ViewModel
             Folder lastFolder = null;
             foreach(var part in parts)
             {
-                var folder = lastFolder != null
-                    ? lastFolder.Folders.SingleOrDefault(c => c.Name == part)
-                    : folders.SingleOrDefault(c => c.Name == part);
+                var fullPath = Path.Combine(lastFolder != null ? lastFolder.FullPath : basePath, part);
+
+                Folder folder;
+                if(searchMap.ContainsKey(fullPath))
+                {
+                    folder = searchMap[fullPath];
+                }
+                else if(lastFolder != null)
+                {
+                    folder = lastFolder.Folders.SingleOrDefault(c => c.Name == part);
+                }
+                else
+                {
+                    folder = folders.SingleOrDefault(c => c.Name == part);
+                }
 
 
                 if(folder == null)
                 {
-                    folder = new Folder()
+                    folder = new Folder
                              {
                                  Name = part,
-                                 FullPath = Path.Combine(lastFolder != null ? lastFolder.FullPath : basePath, part),
+                                 FullPath = fullPath,
                                  Folders = new List<Folder>(),
                                  Documents = new List<Document>()
                              };
+
+                    searchMap.Add(folder.FullPath, folder);
 
                     if(lastFolder != null)
                     {
