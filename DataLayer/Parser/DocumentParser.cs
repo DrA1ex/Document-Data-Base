@@ -14,7 +14,7 @@ namespace DataLayer.Parser
         [Description("Остановлено")]
         Stopped,
         [Description("Ожидание")]
-        Iddle,
+        Idle,
         [Description("Выполняется")]
         Running,
         [Description("Приостановлено")]
@@ -82,12 +82,17 @@ namespace DataLayer.Parser
                 WaitHandle.WaitAny(pauseHandles);
                 SynchronizationContext.Send(state => State = DocumentParserState.Running, null);
 
-                if(!ct.IsCancellationRequested)
+
+                while(!ct.IsCancellationRequested)
                 {
                     using(var ctx = new DdbContext())
                     {
                         var docsToParse = ctx.Documents
-                            .Where(c => c.Cached == false);
+                            .Where(c => c.Cached == false)
+                            .Take(100);
+
+                        if(!docsToParse.Any())
+                            break;
 
                         foreach(var document in docsToParse)
                         {
@@ -123,7 +128,7 @@ namespace DataLayer.Parser
 
                 if(PauseResetEvent.WaitOne(0))
                 {
-                    SynchronizationContext.Send(state => State = DocumentParserState.Iddle, null);
+                    SynchronizationContext.Send(state => State = DocumentParserState.Idle, null);
                 }
                 WaitHandle.WaitAny(delayHandles, TimeSpan.FromMinutes(1));
             }

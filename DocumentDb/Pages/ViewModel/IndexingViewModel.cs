@@ -66,7 +66,7 @@ namespace DocumentDb.Pages.ViewModel
             get
             {
                 return _stopParserCommand ?? (_stopParserCommand = new RelayCommand(StopParser, o => DocumentParserState == DocumentParserState.Running ||
-                                                                                                     DocumentParserState == DocumentParserState.Iddle));
+                                                                                                     DocumentParserState == DocumentParserState.Idle));
             }
         }
 
@@ -80,7 +80,7 @@ namespace DocumentDb.Pages.ViewModel
             get
             {
                 return _pauseParserCommand ?? (_pauseParserCommand = new RelayCommand(PauseParser, o => DocumentParserState == DocumentParserState.Running ||
-                                                                                                        DocumentParserState == DocumentParserState.Iddle));
+                                                                                                        DocumentParserState == DocumentParserState.Idle));
             }
         }
 
