@@ -13,7 +13,7 @@ namespace DataLayer.Parser
     {
         [Description("Остановлено")]
         Stopped,
-        [Description("Остановливается")]
+        [Description("Останавливается")]
         Stopping,
         [Description("Ожидание")]
         Idle,
