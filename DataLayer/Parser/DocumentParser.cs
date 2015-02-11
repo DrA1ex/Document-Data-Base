@@ -106,24 +106,31 @@ namespace DataLayer.Parser
                             .WithCancellation(ct)
                             .Select(c => new { Document = c, Content = ContentExtractor.GetContent(c) });
 
-                        foreach(var record in docsWithContent)
+                        try
                         {
-                            if(ct.IsCancellationRequested || !PauseResetEvent.WaitOne(0))
+                            foreach(var record in docsWithContent)
                             {
-                                break;
-                            }
+                                if(ct.IsCancellationRequested || !PauseResetEvent.WaitOne(0))
+                                {
+                                    break;
+                                }
 
-                            try
-                            {
-                                FtsService.AddUpdateLuceneIndex(record.Document, record.Content);
-                                record.Document.Cached = true;
+                                try
+                                {
+                                    FtsService.AddUpdateLuceneIndex(record.Document, record.Content);
+                                    record.Document.Cached = true;
 
-                                StatisticsModel.Instance.DocumentsInCacheCount += 1;
+                                    StatisticsModel.Instance.DocumentsInCacheCount += 1;
+                                }
+                                catch(Exception e)
+                                {
+                                    Logger.Instance.Error("Cannot add file '{0}' to index: {1}", record.Document.Name, e);
+                                }
                             }
-                            catch(Exception e)
-                            {
-                                Logger.Instance.Error("Cannot add file '{0}' to index: {1}", record.Document.Name, e);
-                            }
+                        }
+                        catch(OperationCanceledException)
+                        {
+                            //Do nothing
                         }
 
                         try
