@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Common.Utils;
 using DataLayer.Model;
 using DataLayer.Parser.ContentExtractors.Base;
 
@@ -27,7 +28,14 @@ namespace DataLayer.Parser
 
             if(extractor != null)
             {
-                return extractor.GetContent(Path.Combine(doc.FullPath, doc.Name));
+                try
+                {
+                    return extractor.GetContent(Path.Combine(doc.FullPath, doc.Name));
+                }
+                catch(Exception e)
+                {
+                    Logger.Instance.Warn("Не удалось извлечь контент файла '{0}': {1}", Path.Combine(doc.FullPath, doc.Name), (object)e);
+                }
             }
 
             return String.Empty;
