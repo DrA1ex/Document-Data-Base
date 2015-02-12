@@ -1,4 +1,5 @@
-﻿using System.Data.Entity;
+﻿using System;
+using System.Data.Entity;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
@@ -20,11 +21,17 @@ namespace DocumentDb
                 Directory.CreateDirectory("data");
             }
 
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
+
             Database.SetInitializer(new MigrateDatabaseToLatestVersion<DdbContext, Configuration>());
             ApplicationWorkers.DirectoryMonitor.Update();
             ApplicationWorkers.DocumentParser.Start();
+        }
 
-            DispatcherUnhandledException += OnDispatcherUnhandledException;
+        private void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs args)
+        {
+            Logger.Instance.Error("Необработанное исключение: {0}", args.ExceptionObject);
         }
 
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs args)

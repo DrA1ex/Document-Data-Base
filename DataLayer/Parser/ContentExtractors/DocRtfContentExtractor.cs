@@ -1,5 +1,7 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 using DataLayer.Model;
 using DataLayer.Parser.ContentExtractors.Base;
 using Microsoft.Office.Interop.Word;
@@ -10,10 +12,10 @@ namespace DataLayer.Parser.ContentExtractors
     {
         public DocumentType[] SupporterTypes
         {
-            get { return new[] {DocumentType.Doc, DocumentType.Rtf}; }
+            get { return new[] { DocumentType.Doc, DocumentType.Rtf }; }
         }
 
-        public string GetContent(string filePath)
+        public string GetContent(string filePath, CancellationToken token)
         {
             var word = new Application();
             object miss = Missing.Value;
@@ -22,13 +24,19 @@ namespace DataLayer.Parser.ContentExtractors
             var docs = word.Documents.Open(ref path, ref miss, ref readOnly, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss, ref miss);
 
             var builder = new StringBuilder();
-            for(var i = 0; i < docs.Paragraphs.Count; i++)
+            try
             {
-                builder.AppendLine(docs.Paragraphs[i + 1].Range.Text);
+                for(var i = 0; i < docs.Paragraphs.Count; i++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    builder.AppendLine(docs.Paragraphs[i + 1].Range.Text);
+                }
             }
-
-            docs.Close();
-            word.Quit();
+            finally
+            {
+                docs.Close();
+                word.Quit();
+            }
 
             return builder.ToString();
         }

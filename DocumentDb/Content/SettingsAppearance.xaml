@@ -37,23 +37,17 @@
                     <Grid.RowDefinitions>
                         <RowDefinition />
                         <RowDefinition />
-                        <RowDefinition />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Палитра:" VerticalAlignment="Center" Margin="6" />
-                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Palettes}"
-                              SelectedItem="{Binding SelectedPalette, Mode=TwoWay}" VerticalAlignment="Center"
-                              Margin="6" />
-
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Тема:" VerticalAlignment="Center" Margin="6" />
-                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Themes}"
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Тема:" VerticalAlignment="Center" Margin="6" />
+                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Themes}"
                               SelectedValue="{Binding SelectedTheme, Mode=TwoWay}" SelectedValuePath="DisplayName"
                               DisplayMemberPath="DisplayName"
                               VerticalAlignment="Center" Margin="6" />
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Размер шрифта:" VerticalAlignment="Center"
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Размер шрифта:" VerticalAlignment="Center"
                                Margin="6" />
-                    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding FontSizes}"
+                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding FontSizes}"
                               SelectedItem="{Binding SelectedFontSize, Mode=TwoWay}" VerticalAlignment="Center" Margin="6"/>
                 </Grid>
             </StackPanel>

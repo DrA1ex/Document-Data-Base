@@ -13,8 +13,10 @@ namespace DataLayer.Parser
     {
         [Description("Остановлено")]
         Stopped,
+        [Description("Останавливается")]
+        Stopping,
         [Description("Ожидание")]
-        Iddle,
+        Idle,
         [Description("Выполняется")]
         Running,
         [Description("Приостановлено")]
@@ -23,6 +25,7 @@ namespace DataLayer.Parser
 
     public class DocumentParser : IDisposable, INotifyPropertyChanged
     {
+        private const int MaxDocumentPerPass = 100;
         private CancellationTokenSource _cancellationTokenSource;
         private ManualResetEvent _pauseResetEvent;
         private DocumentParserState _state;
@@ -82,31 +85,52 @@ namespace DataLayer.Parser
                 WaitHandle.WaitAny(pauseHandles);
                 SynchronizationContext.Send(state => State = DocumentParserState.Running, null);
 
-                if(!ct.IsCancellationRequested)
+
+                while(!ct.IsCancellationRequested)
                 {
                     using(var ctx = new DdbContext())
                     {
                         var docsToParse = ctx.Documents
-                            .Where(c => c.Cached == false);
+                            .Where(c => c.Cached == false)
+                            .Take(MaxDocumentPerPass);
 
-                        foreach(var document in docsToParse)
+                        if(!docsToParse.Any())
                         {
-                            if(ct.IsCancellationRequested || !PauseResetEvent.WaitOne(0))
-                            {
-                                break;
-                            }
+                            break;
+                        }
 
-                            try
-                            {
-                                FtsService.AddUpdateLuceneIndex(document, ContentExtractor.GetContent(document));
-                                document.Cached = true;
+                        var docsWithContent = docsToParse
+                            .AsParallel()
+                            .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
+                            .WithMergeOptions(ParallelMergeOptions.NotBuffered)
+                            .WithCancellation(ct)
+                            .Select(c => new { Document = c, Content = ContentExtractor.GetContent(c, ct) });
 
-                                StatisticsModel.Instance.DocumentsInCacheCount += 1;
-                            }
-                            catch(Exception e)
+                        try
+                        {
+                            foreach(var record in docsWithContent)
                             {
-                                Logger.Instance.Error("Cannot add file '{0}' to index: {1}", document.Name, e);
+                                if(ct.IsCancellationRequested || !PauseResetEvent.WaitOne(0))
+                                {
+                                    break;
+                                }
+
+                                try
+                                {
+                                    FtsService.AddUpdateLuceneIndex(record.Document, record.Content);
+                                    record.Document.Cached = true;
+
+                                    StatisticsModel.Instance.DocumentsInCacheCount += 1;
+                                }
+                                catch(Exception e)
+                                {
+                                    Logger.Instance.Error("Cannot add file '{0}' to index: {1}", record.Document.Name, e);
+                                }
                             }
+                        }
+                        catch(OperationCanceledException)
+                        {
+                            //Do nothing
                         }
 
                         try
@@ -123,7 +147,7 @@ namespace DataLayer.Parser
 
                 if(PauseResetEvent.WaitOne(0))
                 {
-                    SynchronizationContext.Send(state => State = DocumentParserState.Iddle, null);
+                    SynchronizationContext.Send(state => State = DocumentParserState.Idle, null);
                 }
                 WaitHandle.WaitAny(delayHandles, TimeSpan.FromMinutes(1));
             }
@@ -136,12 +160,16 @@ namespace DataLayer.Parser
                 CancellationTokenSource.Cancel();
                 PauseResetEvent.Set();
 
-                WorkerTask.Wait();
-                WorkerTask = null;
-                CancellationTokenSource.Dispose();
-                _cancellationTokenSource = null;
+                SynchronizationContext.Send(state => State = DocumentParserState.Stopping, null);
 
-                SynchronizationContext.Send(state => State = DocumentParserState.Stopped, null);
+                WorkerTask.ContinueWith(state =>
+                                        {
+                                            WorkerTask = null;
+                                            CancellationTokenSource.Dispose();
+                                            _cancellationTokenSource = null;
+
+                                            SynchronizationContext.Send(c => State = DocumentParserState.Stopped, null);
+                                        });
             }
         }
 
@@ -153,18 +181,18 @@ namespace DataLayer.Parser
 
         public void Start()
         {
-            if(State != DocumentParserState.Paused)
+            if(State == DocumentParserState.Paused)
+            {
+                PauseResetEvent.Set();
+                SynchronizationContext.Send(state => State = DocumentParserState.Running, null);
+            }
+            else if(State == DocumentParserState.Stopped)
             {
                 if(WorkerTask == null)
                 {
                     PauseResetEvent.Set();
                     WorkerTask = Task.Run((Action)ParseDocuments, CancellationTokenSource.Token);
                 }
-            }
-            else
-            {
-                PauseResetEvent.Set();
-                SynchronizationContext.Send(state => State = DocumentParserState.Running, null);
             }
         }
 

@@ -27,6 +27,11 @@ namespace DocumentDb.Content.ViewModel
             }
         }
 
+        public SettingsGeneralViewModel()
+        {
+            IndexUnsupportedFormats = AppConfigurationStorage.Storage.IndexUnsupportedFormats;
+        }
+
         public ICommand PickCatalogCommand
         {
             get { return _pickCatalogCommand ?? (_pickCatalogCommand = new DelegateCommand(PickCatalog)); }

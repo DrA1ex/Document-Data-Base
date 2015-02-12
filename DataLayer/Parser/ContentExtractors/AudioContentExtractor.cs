@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Common.Utils;
 using DataLayer.Model;
 using DataLayer.Parser.ContentExtractors.Base;
@@ -15,7 +16,7 @@ namespace DataLayer.Parser.ContentExtractors
             get { return new[] { DocumentType.Audio }; }
         }
 
-        public string GetContent(string filePath)
+        public string GetContent(string filePath, CancellationToken token)
         {
             Tag tag = null;
             try

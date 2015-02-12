@@ -48,7 +48,7 @@
             <Button Grid.Row="0" Grid.Column="1" Content="Искать" Command="{Binding RefreshCommand}" Margin="6" />
             <ListView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding Folders}"
                       SelectedValuePath="Documents" SelectedValue="{Binding Documents}"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="SelectorOnSelectionChanged">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding FullPath}" ToolTip="{Binding FullPath}"
@@ -61,7 +61,7 @@
 
         <Rectangle Grid.Column="1" Fill="{DynamicResource SeparatorBackground}" Width="1" Grid.Row="0" />
 
-        <ScrollViewer Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="DocumentScrollViewer" Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemTemplate="{StaticResource DocumentItemTemplate}"
                           ItemsSource="{Binding Documents}" />
         </ScrollViewer>

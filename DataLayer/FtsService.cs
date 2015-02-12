@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using System.IO;
 using System.Linq;
+using System.Windows.Media;
 using Common.Utils;
 using Lucene.Net.Analysis.Ru;
 using Lucene.Net.Documents;
@@ -17,10 +19,31 @@ namespace DataLayer
 {
     public static class FtsService
     {
-        public static readonly string[] HighlightTags = { "[color=red][b]", "[/b][/color]" };
+        public static string[] HighlightTags { get; set; }
         public static readonly string LuceneDir = Path.Combine(Environment.CurrentDirectory, "data", "lucene_index");
         private static FSDirectory _directoryTemp;
         private static readonly RussianAnalyzer Analyzer = new RussianAnalyzer(Version.LUCENE_30);
+        private static Color _highlightingColor;
+
+        public static Color HighlightingColor
+        {
+            get { return _highlightingColor; }
+            set
+            {
+                _highlightingColor = value;
+                HighlightTags =
+                    new[]
+                    {
+                        String.Format("[color={0}][b]", value),
+                        "[/b][/color]"
+                    };
+            }
+        }
+
+        static FtsService()
+        {
+            HighlightingColor = Colors.Red;
+        }
 
         private static FSDirectory Directory
         {

@@ -15,7 +15,7 @@ namespace DocumentDb.Pages.ViewModel
         private RelayCommand _pauseParserCommand;
         private RelayCommand _startParserCommand;
         private RelayCommand _stopParserCommand;
-        private ICommand _updateIndexCommand;
+        private RelayCommand _updateIndexCommand;
 
         public IndexingViewModel()
         {
@@ -25,6 +25,7 @@ namespace DocumentDb.Pages.ViewModel
                                                                        if(args.PropertyName == "State")
                                                                        {
                                                                            DocumentMonitorState = ApplicationWorkers.DirectoryMonitor.State;
+                                                                           UpdateIndexCommand.OnCanExecuteChanged();
                                                                        }
                                                                    };
 
@@ -66,7 +67,7 @@ namespace DocumentDb.Pages.ViewModel
             get
             {
                 return _stopParserCommand ?? (_stopParserCommand = new RelayCommand(StopParser, o => DocumentParserState == DocumentParserState.Running ||
-                                                                                                     DocumentParserState == DocumentParserState.Iddle));
+                                                                                                     DocumentParserState == DocumentParserState.Idle));
             }
         }
 
@@ -80,13 +81,13 @@ namespace DocumentDb.Pages.ViewModel
             get
             {
                 return _pauseParserCommand ?? (_pauseParserCommand = new RelayCommand(PauseParser, o => DocumentParserState == DocumentParserState.Running ||
-                                                                                                        DocumentParserState == DocumentParserState.Iddle));
+                                                                                                        DocumentParserState == DocumentParserState.Idle));
             }
         }
 
-        public ICommand UpdateIndexCommand
+        public RelayCommand UpdateIndexCommand
         {
-            get { return _updateIndexCommand ?? (_updateIndexCommand = new DelegateCommand(UpdateIndex)); }
+            get { return _updateIndexCommand ?? (_updateIndexCommand = new RelayCommand(UpdateIndex, o => DocumentMonitorState == DocumentMonitorState.Idle)); }
         }
 
         public ICommand OptimizeFtsIndexCommand
@@ -109,7 +110,7 @@ namespace DocumentDb.Pages.ViewModel
             ApplicationWorkers.DocumentParser.Pause();
         }
 
-        private void UpdateIndex()
+        private void UpdateIndex(object o)
         {
             ApplicationWorkers.DirectoryMonitor.Update();
         }

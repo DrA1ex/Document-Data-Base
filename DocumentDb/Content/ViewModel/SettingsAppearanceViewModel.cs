@@ -12,75 +12,67 @@ namespace DocumentDb.Content.ViewModel
     {
         private const string FontSmall = "Мелкий";
         private const string FontLarge = "Крупный";
-        private const string PaletteMetro = "Metro";
-        private const string PaletteWp = "Windows Phone";
-        private const string PaletteMaterial = "Material";
+
         private Color _selectedAccentColor;
         private string _selectedFontSize;
-        private string _selectedPalette = PaletteMaterial;
         private string _selectedTheme;
-
-        private readonly Color[] _materialColors =
+        private readonly Color[] _accentColors =
         {
-            Color.FromRgb(244, 67, 54),
-            Color.FromRgb(233, 30, 99),
-            Color.FromRgb(156, 39, 176),
-            Color.FromRgb(103, 58, 183),
-            Color.FromRgb(63, 81, 181),
             Color.FromRgb(33, 150, 243),
             Color.FromRgb(3, 169, 244),
-            Color.FromRgb(0, 188, 212),
-            Color.FromRgb(0, 150, 136),
-            Color.FromRgb(76, 175, 80),
-            Color.FromRgb(139, 195, 74),
-            Color.FromRgb(205, 220, 57),
-            Color.FromRgb(255, 193, 7),
-            Color.FromRgb(255, 152, 0),
-            Color.FromRgb(255, 87, 34),
-            Color.FromRgb(121, 85, 72),
-            Color.FromRgb(158, 158, 158),
-            Color.FromRgb(96, 125, 139)
-        };
+            Color.FromRgb(0x1b, 0xa1, 0xe2),
+            Color.FromRgb(0x33, 0x99, 0xff),
+            Color.FromRgb(0x00, 0x50, 0xef),
+            Color.FromRgb(63, 81, 181),
 
-        // 9 accent colors from metro design principles
-        private readonly Color[] _metroAccentColors =
-        {
-            Color.FromRgb(0x33, 0x99, 0xff), // blue
-            Color.FromRgb(0x00, 0xab, 0xa9), // teal
-            Color.FromRgb(0x33, 0x99, 0x33), // green
-            Color.FromRgb(0x8c, 0xbf, 0x26), // lime
-            Color.FromRgb(0xf0, 0x96, 0x09), // orange
-            Color.FromRgb(0xff, 0x45, 0x00), // orange red
-            Color.FromRgb(0xe5, 0x14, 0x00), // red
-            Color.FromRgb(0xff, 0x00, 0x97), // magenta
-            Color.FromRgb(0xa2, 0x00, 0xff) // purple            
+            Color.FromRgb(0, 188, 212),
+            Color.FromRgb(0x00, 0xab, 0xa9),
+            Color.FromRgb(0, 150, 136),
+
+            Color.FromRgb(205, 220, 57),
+            Color.FromRgb(0xa4, 0xc4, 0x00),
+            Color.FromRgb(139, 195, 74),
+            Color.FromRgb(0x8c, 0xbf, 0x26),
+            Color.FromRgb(0x60, 0xa9, 0x17),
+            Color.FromRgb(76, 175, 80),
+            Color.FromRgb(0x33, 0x99, 0x33),
+            Color.FromRgb(0x00, 0x8a, 0x00),
+            
+            Color.FromRgb(0xe3, 0xc8, 0x00),
+            Color.FromRgb(255, 193, 7),
+            Color.FromRgb(0xf0, 0xa3, 0x0a),
+            Color.FromRgb(255, 152, 0),
+            Color.FromRgb(0xf0, 0x96, 0x09),
+            Color.FromRgb(0xfa, 0x68, 0x00),
+          
+            Color.FromRgb(0xff, 0x57, 0x22),
+            Color.FromRgb(0xff, 0x45, 0x00),
+            Color.FromRgb(0xf4, 0x43, 0x36),
+            Color.FromRgb(0xe5, 0x14, 0x00),
+            Color.FromRgb(0xa2, 0x00, 0x25),
+
+            Color.FromRgb(0xf4, 0x72, 0xd0),
+            Color.FromRgb(0xe9, 0x1e, 0x63),
+            Color.FromRgb(0xff, 0x00, 0x97),
+            Color.FromRgb(0xd8, 0x00, 0x73),
+            Color.FromRgb(156, 39, 176),
+
+            Color.FromRgb(103, 58, 183),
+            Color.FromRgb(0x6a, 0x00, 0xff),
+            Color.FromRgb(0xa2, 0x00, 0xff),
+            Color.FromRgb(0xaa, 0x00, 0xff),
+
+            Color.FromRgb(0x82, 0x5a, 0x2c),
+            Color.FromRgb(0x79, 0x55, 0x48),
+            Color.FromRgb(0x6d, 0x87, 0x64),
+            Color.FromRgb(0x64, 0x76, 0x87),
+            Color.FromRgb(96, 125, 139),
+            Color.FromRgb(0x76, 0x60, 0x8a),
+            Color.FromRgb(0x87, 0x79, 0x4e),
+            Color.FromRgb(158, 158, 158),
         };
 
         private readonly LinkCollection _themes = new LinkCollection();
-        // 20 accent colors from Windows Phone 8
-        private readonly Color[] _wpAccentColors =
-        {
-            Color.FromRgb(0xa4, 0xc4, 0x00), // lime
-            Color.FromRgb(0x60, 0xa9, 0x17), // green
-            Color.FromRgb(0x00, 0x8a, 0x00), // emerald
-            Color.FromRgb(0x00, 0xab, 0xa9), // teal
-            Color.FromRgb(0x1b, 0xa1, 0xe2), // cyan
-            Color.FromRgb(0x00, 0x50, 0xef), // cobalt
-            Color.FromRgb(0x6a, 0x00, 0xff), // indigo
-            Color.FromRgb(0xaa, 0x00, 0xff), // violet
-            Color.FromRgb(0xf4, 0x72, 0xd0), // pink
-            Color.FromRgb(0xd8, 0x00, 0x73), // magenta
-            Color.FromRgb(0xa2, 0x00, 0x25), // crimson
-            Color.FromRgb(0xe5, 0x14, 0x00), // red
-            Color.FromRgb(0xfa, 0x68, 0x00), // orange
-            Color.FromRgb(0xf0, 0xa3, 0x0a), // amber
-            Color.FromRgb(0xe3, 0xc8, 0x00), // yellow
-            Color.FromRgb(0x82, 0x5a, 0x2c), // brown
-            Color.FromRgb(0x6d, 0x87, 0x64), // olive
-            Color.FromRgb(0x64, 0x76, 0x87), // steel
-            Color.FromRgb(0x76, 0x60, 0x8a), // mauve
-            Color.FromRgb(0x87, 0x79, 0x4e) // taupe
-        };
 
         public SettingsAppearanceViewModel()
         {
@@ -117,43 +109,10 @@ namespace DocumentDb.Content.ViewModel
             get { return new[] { FontSmall, FontLarge }; }
         }
 
-        public string[] Palettes
-        {
-            get { return new[] { PaletteMaterial, PaletteMetro, PaletteWp }; }
-        }
-
         public Color[] AccentColors
         {
             get
-            {
-                switch(_selectedPalette)
-                {
-                    case PaletteMaterial:
-                        return _materialColors;
-                    case PaletteMetro:
-                        return _metroAccentColors;
-                    default:
-                        return _wpAccentColors;
-                }
-            }
-        }
-
-        public string SelectedPalette
-        {
-            get { return _selectedPalette; }
-            set
-            {
-                if(_selectedPalette != value)
-                {
-                    _selectedPalette = value;
-                    OnPropertyChanged("AccentColors");
-
-                    if(!AccentColors.Any(c => c == SelectedAccentColor))
-                    {
-                        SelectedAccentColor = AccentColors.FirstOrDefault();
-                    }
-                    AppConfigurationStorage.Storage.Palette = value;
-                }
+            {return _accentColors;
             }
         }
 
@@ -215,10 +174,6 @@ namespace DocumentDb.Content.ViewModel
             if(AppConfigurationStorage.Storage.AccentColor != Colors.White)
             {
                 SelectedAccentColor = AppConfigurationStorage.Storage.AccentColor;
-            }
-            if(!String.IsNullOrEmpty(AppConfigurationStorage.Storage.Palette))
-            {
-                SelectedPalette = AppConfigurationStorage.Storage.Palette;
             }
         }
 

@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text;
+using System.Threading;
 using DataLayer.Model;
 using DataLayer.Parser.ContentExtractors.Base;
 using Ude;
@@ -10,10 +11,10 @@ namespace DataLayer.Parser.ContentExtractors
     {
         public DocumentType[] SupporterTypes
         {
-            get { return new[] {DocumentType.Text}; }
+            get { return new[] { DocumentType.Text }; }
         }
 
-        public string GetContent(string filePath)
+        public string GetContent(string filePath, CancellationToken token)
         {
             using(var fs = File.OpenRead(filePath))
             {

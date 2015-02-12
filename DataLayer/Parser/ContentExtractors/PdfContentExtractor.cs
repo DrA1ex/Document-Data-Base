@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Threading;
 using DataLayer.Model;
 using DataLayer.Parser.ContentExtractors.Base;
 using iTextSharp.text.pdf;
@@ -13,13 +14,14 @@ namespace DataLayer.Parser.ContentExtractors
             get { return new[] { DocumentType.Pdf }; }
         }
 
-        public string GetContent(string filePath)
+        public string GetContent(string filePath, CancellationToken token)
         {
             using(var reader = new PdfReader(filePath))
             {
                 var result = new StringBuilder();
                 for(int i = 1; i <= reader.NumberOfPages; i++)
                 {
+                    token.ThrowIfCancellationRequested();
                     result.AppendLine(PdfTextExtractor.GetTextFromPage(reader, i));
                 }
 
