@@ -108,7 +108,7 @@ namespace DocumentDb.Pages.ViewModel
                 _cts.Cancel();
             }
 
-            SynchronizationContext.Send(c => DocumentsIsLoading = true, null);
+            SynchronizationContext.Post(c => DocumentsIsLoading = true, null);
 
             lock(_syncDummy)
             {
@@ -123,7 +123,7 @@ namespace DocumentDb.Pages.ViewModel
                      {
                          lock(_syncDummy)
                          {
-                             SynchronizationContext.Send(c => _documents.Clear(), null);
+                             SynchronizationContext.Post(c => _documents.Clear(), null);
                              var token = _cts.Token;
 
                              try
@@ -140,7 +140,7 @@ namespace DocumentDb.Pages.ViewModel
                                      {
                                          if(!token.IsCancellationRequested)
                                          {
-                                             SynchronizationContext.Send(c => _documents.Add((Document)c), document);
+                                             SynchronizationContext.Post(c => _documents.Add((Document)c), document);
                                          }
                                          else
                                          {
@@ -184,24 +184,24 @@ namespace DocumentDb.Pages.ViewModel
                 return;
             }
 
-            SynchronizationContext.Send(c => FolderTreeIsLoading = true, null);
+            SynchronizationContext.Post(c => FolderTreeIsLoading = true, null);
 
 
             Task.Run(() =>
                      {
                          try
                          {
-                             SynchronizationContext.Send(c => Folders.Clear(), null);
+                             SynchronizationContext.Post(c => Folders.Clear(), null);
 
                              var folders = BuildFolderTree();
                              foreach(var folder in folders)
                              {
-                                 SynchronizationContext.Send(c => Folders.Add(c as Folder), folder);
+                                 SynchronizationContext.Post(c => Folders.Add(c as Folder), folder);
                              }
                          }
                          finally
                          {
-                             SynchronizationContext.Send(c => FolderTreeIsLoading = false, null);
+                             SynchronizationContext.Post(c => FolderTreeIsLoading = false, null);
                          }
                      });
         }

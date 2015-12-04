@@ -119,7 +119,7 @@ namespace DocumentDb.Pages.ViewModel
                 return;
             }
 
-            SynchronizationContext.Send(c => IsBusy = true, null);
+            SynchronizationContext.Post(c => IsBusy = true, null);
 
             Task.Run(() =>
                      {
@@ -132,7 +132,7 @@ namespace DocumentDb.Pages.ViewModel
                                  .OrderBy(c => c.Min(x => x.Order))
                                  .Select(c => new Folder() { FullPath = c.Key, Documents = c.OrderBy(x => x.Order).ToArray() });
 
-                             SynchronizationContext.Send(c => Folders.Clear(), null);
+                             SynchronizationContext.Post(c => Folders.Clear(), null);
 
                              foreach(var folder in folders)
                              {
@@ -141,7 +141,7 @@ namespace DocumentDb.Pages.ViewModel
                          }
                          finally
                          {
-                             SynchronizationContext.Send(c => IsBusy = false, null);
+                             SynchronizationContext.Post(c => IsBusy = false, null);
                          }
                      });
         }

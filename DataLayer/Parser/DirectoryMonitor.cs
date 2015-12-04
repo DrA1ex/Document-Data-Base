@@ -109,7 +109,7 @@ namespace DataLayer.Parser
                          ++_waitingThreads;
                          lock(_syncDummy)
                          {
-                             SynchronizationContext.Send(c => State = DocumentMonitorState.Running, null);
+                             SynchronizationContext.Post(c => State = DocumentMonitorState.Running, null);
                              try
                              {
                                  var directories = Directory.GetDirectories(BasePath);
@@ -122,7 +122,7 @@ namespace DataLayer.Parser
 
                                  using(var ctx = new DdbContext())
                                  {
-                                     SynchronizationContext.Send(c => State = DocumentMonitorState.Deleting, null);
+                                     SynchronizationContext.Post(c => State = DocumentMonitorState.Deleting, null);
 
                                      foreach(var document in ctx.Documents)
                                      {
@@ -150,7 +150,7 @@ namespace DataLayer.Parser
                              }
                              finally
                              {
-                                 SynchronizationContext.Send(c => State = DocumentMonitorState.Idle, null);
+                                 SynchronizationContext.Post(c => State = DocumentMonitorState.Idle, null);
                                  --_waitingThreads;
                              }
                          }
