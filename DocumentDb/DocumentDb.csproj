@@ -106,6 +106,7 @@
     <Compile Include="Converters\StringEmptyToVisibility.cs" />
     <Compile Include="Converters\TypeDescriptionToString.cs" />
     <Compile Include="Pages\Model\Folder.cs" />
+    <Compile Include="Pages\ViewModel\Base\NavigationViewModelBase.cs" />
     <Compile Include="Pages\ViewModel\IndexingViewModel.cs" />
     <Compile Include="Pages\ViewModel\NavigationViewModel.cs" />
     <Compile Include="Pages\Index.xaml.cs">

@@ -16,20 +16,19 @@ using DataLayer.Parser;
 using DocumentDb.Common;
 using DocumentDb.Common.Storage;
 using DocumentDb.Pages.Model;
+using DocumentDb.Pages.ViewModel.Base;
 using FirstFloor.ModernUI.Presentation;
 using FirstFloor.ModernUI.Windows.Controls;
 
 namespace DocumentDb.Pages.ViewModel
 {
-    public class NavigationViewModel : NotifyPropertyChanged
+    public sealed class NavigationViewModel : NavigationViewModelBase
     {
         private CancellationTokenSource _cts;
         private ObservableCollection<Document> _documents;
         private bool _documentsIsLoading;
         private Folder _rootFolder;
         private bool _folderTreeIsLoading;
-        private ICommand _openFileCommand;
-        private SynchronizationContext _synchronizationContext;
         private readonly object _syncDummy = new object();
 
         public NavigationViewModel()
@@ -54,7 +53,7 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _folderTreeIsLoading = value;
-                OnPropertyChanged("FolderTreeIsLoading");
+                OnPropertyChanged();
             }
         }
 
@@ -64,7 +63,7 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _documentsIsLoading = value;
-                OnPropertyChanged("DocumentsIsLoading");
+                OnPropertyChanged();
             }
         }
 
@@ -82,29 +81,19 @@ namespace DocumentDb.Pages.ViewModel
             }
         }
 
-        public SynchronizationContext SynchronizationContext
-        {
-            get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
-        }
-
         public Folder RootFolder
         {
             get { return _rootFolder; }
             set
             {
                 _rootFolder = value;
-                OnPropertyChanged("RootFolder");
+                OnPropertyChanged();
             }
         }
 
         public ObservableCollection<Document> Documents
         {
             get { return _documents ?? (_documents = new ObservableCollection<Document>()); }
-        }
-
-        public ICommand OpenFileCommand
-        {
-            get { return _openFileCommand ?? (_openFileCommand = new DelegateCommand<Document>(OpenFile)); }
         }
 
         public void SetDocuments(long[] documentsId)
@@ -168,7 +157,7 @@ namespace DocumentDb.Pages.ViewModel
                      }, _cts.Token);
         }
 
-        private void OpenFile(Document doc)
+        protected override void OpenFile(Document doc)
         {
             var fileToOpen = Path.Combine(doc.FullPath, doc.Name);
 

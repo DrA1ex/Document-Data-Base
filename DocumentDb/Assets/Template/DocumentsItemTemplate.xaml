@@ -5,7 +5,7 @@
                     mc:Ignorable="d"
                     xmlns:model="clr-namespace:DataLayer.Model;assembly=DataLayer"
                     xmlns:mui="http://firstfloorsoftware.com/ModernUI"
-                    xmlns:viewModel="clr-namespace:DocumentDb.Pages.ViewModel">
+                    xmlns:viewModelBase="clr-namespace:DocumentDb.Pages.ViewModel.Base">
 
     <model:Document x:Key="DocumentDesignData"
                     Name="Уголовный кодекс. Статья 38. [b]Изнасилование[/b], совершенное группой лиц.docx" Type="Pdf"
@@ -60,7 +60,7 @@
             <mui:ModernButton
                 ToolTip="{Binding Type, Converter={StaticResource TypeDescriptionToString}}"
                 Style="{StaticResource IconStyle}"
-                Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.(viewModel:NavigationViewModel.OpenFileCommand)}"
+                Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.(viewModelBase:NavigationViewModelBase.OpenFileCommand)}"
                 CommandParameter="{Binding}"
                 IconWidth="20" IconHeight="20" EllipseDiameter="38" EllipseStrokeThickness="2"
                 VerticalAlignment="Center" Margin="6"

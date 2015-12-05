@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -14,21 +13,20 @@ using DataLayer;
 using DataLayer.Model;
 using DocumentDb.Common.Storage;
 using DocumentDb.Pages.Model;
-using FirstFloor.ModernUI.Presentation;
+using DocumentDb.Pages.ViewModel.Base;
 using FirstFloor.ModernUI.Windows.Controls;
 
 namespace DocumentDb.Pages.ViewModel
 {
-    public class SearchViewModel : NotifyPropertyChanged
+    public sealed class SearchViewModel : NavigationViewModelBase
     {
         private DdbContext _context;
         private IEnumerable<Document> _documents;
         private ObservableCollection<Folder> _folders;
         private bool _isBusy;
-        private ICommand _openFileCommand;
         private ICommand _refreshCommand;
         private string _searchString;
-        private SynchronizationContext _synchronizationContext;
+
 
         public SearchViewModel()
         {
@@ -37,24 +35,20 @@ namespace DocumentDb.Pages.ViewModel
             Context.Configuration.ProxyCreationEnabled = false;
         }
 
+
+        public DdbContext Context
+        {
+            get { return _context ?? (_context = new DdbContext()); }
+        }
+
         public bool IsBusy
         {
             get { return _isBusy; }
             set
             {
                 _isBusy = value;
-                OnPropertyChanged("isBusy");
+                OnPropertyChanged();
             }
-        }
-
-        public SynchronizationContext SynchronizationContext
-        {
-            get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
-        }
-
-        public DdbContext Context
-        {
-            get { return _context ?? (_context = new DdbContext()); }
         }
 
         public ObservableCollection<Folder> Folders
@@ -68,7 +62,7 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _documents = value;
-                OnPropertyChanged("Documents");
+                OnPropertyChanged();
             }
         }
 
@@ -78,7 +72,7 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _searchString = value;
-                OnPropertyChanged("SearchString");
+                OnPropertyChanged();
             }
         }
 
@@ -87,12 +81,41 @@ namespace DocumentDb.Pages.ViewModel
             get { return _refreshCommand ?? (_refreshCommand = new DelegateCommand(Refresh)); }
         }
 
-        public ICommand OpenFileCommand
+        public void Refresh()
         {
-            get { return _openFileCommand ?? (_openFileCommand = new DelegateCommand<Document>(OpenFile)); }
+            if(IsBusy)
+            {
+                return;
+            }
+
+            SynchronizationContext.Post(c => IsBusy = true, null);
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    var docs = FetchDocumentsForClause(SearchString);
+
+                    var folders = docs
+                        .GroupBy(c => c.FullPath)
+                        .OrderBy(c => c.Min(x => x.Order))
+                        .Select(c => new Folder {FullPath = c.Key, Documents = c.OrderBy(x => x.Order).ToArray()});
+
+                    SynchronizationContext.Post(c => Folders.Clear(), null);
+
+                    foreach(var folder in folders)
+                    {
+                        SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
+                    }
+                }
+                finally
+                {
+                    SynchronizationContext.Post(c => IsBusy = false, null);
+                }
+            });
         }
 
-        private void OpenFile(Document doc)
+        protected override void OpenFile(Document doc)
         {
             var docName = doc.Name;
             foreach(var highlightTag in FtsService.HighlightTags)
@@ -107,50 +130,17 @@ namespace DocumentDb.Pages.ViewModel
             }
             catch(Exception e)
             {
-                ModernDialog.ShowMessage(String.Format("Не удалось открыть файл '{0}'. Причина: {1}", fileToOpen, e.Message)
+                ModernDialog.ShowMessage(
+                    string.Format("Не удалось открыть файл '{0}'. Причина: {1}", fileToOpen, e.Message)
                     , "Ошибка открытия файла", MessageBoxButton.OK, Application.Current.MainWindow);
             }
         }
 
-        public void Refresh()
-        {
-            if(IsBusy)
-            {
-                return;
-            }
-
-            SynchronizationContext.Post(c => IsBusy = true, null);
-
-            Task.Run(() =>
-                     {
-                         try
-                         {
-                             var docs = FetchDocumentsForClause(SearchString);
-
-                             var folders = docs
-                                 .GroupBy(c => c.FullPath)
-                                 .OrderBy(c => c.Min(x => x.Order))
-                                 .Select(c => new Folder() { FullPath = c.Key, Documents = c.OrderBy(x => x.Order).ToArray() });
-
-                             SynchronizationContext.Post(c => Folders.Clear(), null);
-
-                             foreach(var folder in folders)
-                             {
-                                 SynchronizationContext.Post(c => Folders.Add((Folder)c), folder);
-                             }
-                         }
-                         finally
-                         {
-                             SynchronizationContext.Post(c => IsBusy = false, null);
-                         }
-                     });
-        }
-
         private Document[] FetchDocumentsForClause(string clause)
         {
-            if(String.IsNullOrWhiteSpace(clause))
+            if(string.IsNullOrWhiteSpace(clause))
             {
-                return new Document[] { };
+                return new Document[] {};
             }
 
             var docs = FtsService.Search(clause);
@@ -166,7 +156,9 @@ namespace DocumentDb.Pages.ViewModel
 
                 if(existingDocument == null)
                 {
-                    Logger.Instance.Warn("Документ с кодом {0} все еще присутствует в иднексе, но отсутствует в базе данных. Будет выполнена попытка удаления", document.Id);
+                    Logger.Instance.Warn(
+                        "Документ с кодом {0} все еще присутствует в иднексе, но отсутствует в базе данных. Будет выполнена попытка удаления",
+                        document.Id);
                     FtsService.ClearLuceneIndexRecord(document.Id);
                     continue;
                 }
@@ -175,7 +167,8 @@ namespace DocumentDb.Pages.ViewModel
                 existingDocument.DocumentContent = document.DocumentContent;
                 existingDocument.Order = ++currentIndex;
 
-                if(existingDocument.Type != DocumentType.Undefined || AppConfigurationStorage.Storage.IndexUnsupportedFormats)
+                if(existingDocument.Type != DocumentType.Undefined ||
+                   AppConfigurationStorage.Storage.IndexUnsupportedFormats)
                 {
                     result.Add(existingDocument);
                 }
