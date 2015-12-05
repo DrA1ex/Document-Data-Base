@@ -184,7 +184,7 @@ namespace DataLayer.Parser
             if(State == DocumentParserState.Paused)
             {
                 PauseResetEvent.Set();
-                SynchronizationContext.Post(state => State = DocumentParserState.Running, null);
+                SynchronizationContext.Post(state => State = DocumentParserState.Idle, null);
             }
             else if(State == DocumentParserState.Stopped)
             {
