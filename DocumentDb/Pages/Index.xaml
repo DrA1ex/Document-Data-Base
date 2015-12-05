@@ -17,6 +17,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
@@ -40,5 +42,14 @@
                    Text="{Binding DocumentMonitorState, Converter={StaticResource TypeDescriptionToString}}" />
         <Button Grid.Row="1" Grid.Column="2" Content="Перестроить индекс" Command="{Binding UpdateIndexCommand}"
                 HorizontalAlignment="Left" Margin="6,3" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Индекс" />
+        <Button Grid.Row="2" Grid.Column="2" Content="Очистить" Command="{Binding ClearIndexCommand}"
+                HorizontalAlignment="Left" Margin="6,3" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Полнотекстовый индекс" />
+        <Button Grid.Row="3" Grid.Column="2" Content="Очистить" Command="{Binding ClearFtsIndexCommand}"
+                HorizontalAlignment="Left" Margin="6,3" />
+
     </Grid>
 </UserControl>
