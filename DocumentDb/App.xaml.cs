@@ -21,12 +21,19 @@ namespace DocumentDb
                 Directory.CreateDirectory("data");
             }
 
+            Current.Exit += OnApplicationExit;
+
             DispatcherUnhandledException += OnDispatcherUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
 
             Database.SetInitializer(new MigrateDatabaseToLatestVersion<DdbContext, Configuration>());
             ApplicationWorkers.DirectoryMonitor.Update();
             ApplicationWorkers.DocumentParser.Start();
+        }
+
+        private void OnApplicationExit(object sender, ExitEventArgs e)
+        {
+            ApplicationWorkers.DocumentParser.Stop();
         }
 
         private void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs args)
