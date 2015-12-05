@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using System.Windows;
-using DataLayer.Model;
 using DocumentDb.Pages.Model;
 using DocumentDb.Pages.ViewModel;
 
@@ -24,7 +23,9 @@ namespace DocumentDb.Pages
 
         private void TreeView_OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            var folder = e.NewValue as Folder;
+            var folder = e.NewValue != null
+                ? e.NewValue as Folder ?? ViewModel.RootFolder
+                : null;
             if(folder != null)
             {
                 DocumentsScrollViewer.ScrollToTop();

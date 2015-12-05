@@ -48,7 +48,7 @@ namespace DocumentDb.Pages.Model
             set
             {
                 _folders = value;
-                OnPropertyChanged("Folders");
+                OnPropertyChanged("RootFolder");
             }
         }
 

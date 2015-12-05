@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Common;
+using Common.Utils;
 using DataLayer;
 using DataLayer.Model;
 using DataLayer.Parser;
@@ -25,7 +26,7 @@ namespace DocumentDb.Pages.ViewModel
         private CancellationTokenSource _cts;
         private ObservableCollection<Document> _documents;
         private bool _documentsIsLoading;
-        private ObservableCollection<Folder> _folders;
+        private Folder _rootFolder;
         private bool _folderTreeIsLoading;
         private ICommand _openFileCommand;
         private SynchronizationContext _synchronizationContext;
@@ -86,9 +87,14 @@ namespace DocumentDb.Pages.ViewModel
             get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
         }
 
-        public ObservableCollection<Folder> Folders
+        public Folder RootFolder
         {
-            get { return _folders ?? (_folders = new ObservableCollection<Folder>()); }
+            get { return _rootFolder; }
+            set
+            {
+                _rootFolder = value;
+                OnPropertyChanged("RootFolder");
+            }
         }
 
         public ObservableCollection<Document> Documents
@@ -110,7 +116,7 @@ namespace DocumentDb.Pages.ViewModel
 
             SynchronizationContext.Post(c => DocumentsIsLoading = true, null);
 
-            lock(_syncDummy)
+            lock (_syncDummy)
             {
                 if(_cts != null)
                 {
@@ -121,7 +127,7 @@ namespace DocumentDb.Pages.ViewModel
 
             Task.Run(() =>
                      {
-                         lock(_syncDummy)
+                         lock (_syncDummy)
                          {
                              SynchronizationContext.Post(c => _documents.Clear(), null);
                              var token = _cts.Token;
@@ -185,19 +191,12 @@ namespace DocumentDb.Pages.ViewModel
             }
 
             SynchronizationContext.Post(c => FolderTreeIsLoading = true, null);
-
-
+            
             Task.Run(() =>
                      {
                          try
                          {
-                             SynchronizationContext.Post(c => Folders.Clear(), null);
-
-                             var folders = BuildFolderTree();
-                             foreach(var folder in folders)
-                             {
-                                 SynchronizationContext.Post(c => Folders.Add(c as Folder), folder);
-                             }
+                             SynchronizationContext.Post(folder => RootFolder = folder, BuildFolderTree());
                          }
                          finally
                          {
@@ -206,7 +205,7 @@ namespace DocumentDb.Pages.ViewModel
                      });
         }
 
-        public IEnumerable<Folder> BuildFolderTree()
+        public Folder BuildFolderTree()
         {
             var baseCatalog = AppConfigurationStorage.Storage.CatalogPath;
 
@@ -230,7 +229,7 @@ namespace DocumentDb.Pages.ViewModel
                 }
             }
 
-            return folders;
+            return folders.SingleOrDefault();
         }
 
         private Folder GetFolder(List<Folder> folders, IDictionary<string, Folder> searchMap, string basePath, string path)
@@ -246,7 +245,8 @@ namespace DocumentDb.Pages.ViewModel
                 .TrimStart(Path.DirectorySeparatorChar)
                 .Split(Path.DirectorySeparatorChar);
 
-            Folder lastFolder = null;
+            Folder lastFolder;
+            searchMap.TryGetValue(basePath, out lastFolder);
             foreach(var part in parts)
             {
                 var fullPath = Path.Combine(lastFolder != null ? lastFolder.FullPath : basePath, part);
@@ -269,12 +269,12 @@ namespace DocumentDb.Pages.ViewModel
                 if(folder == null)
                 {
                     folder = new Folder
-                             {
-                                 Name = part,
-                                 FullPath = fullPath,
-                                 Folders = new List<Folder>(),
-                                 Documents = new List<Document>()
-                             };
+                    {
+                        Name = part,
+                        FullPath = fullPath,
+                        Folders = new List<Folder>(),
+                        Documents = new List<Document>()
+                    };
 
                     searchMap.Add(folder.FullPath, folder);
 

@@ -158,7 +158,6 @@ namespace DocumentDb.Pages.ViewModel
             var result = new List<Document>();
             long currentIndex = 0;
 
-            // ReSharper disable once PossibleMultipleEnumeration
             foreach(var document in docs)
             {
                 var existingDocument = Context.Documents

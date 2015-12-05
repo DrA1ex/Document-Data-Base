@@ -23,12 +23,25 @@ namespace DataLayer.Parser
     public class DirectoryMonitor : INotifyPropertyChanged
     {
         private static readonly dynamic[] Types;
+
+        private readonly object _syncDummy = new object();
         private string _basePath;
         private DocumentMonitorState _state;
+        private long _waitingThreads;
+
+        static DirectoryMonitor()
+        {
+            // ReSharper disable once CoVariantArrayConversion
+            Types = ((DocumentType[])Enum.GetValues(typeof(DocumentType)))
+                .Select(c => new {Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c})
+                .Where(c => c.Attribute != null)
+                .Select(c => new {c.Attribute.Extensions, c.Value})
+                .ToArray();
+        }
 
         public DirectoryMonitor(string path)
         {
-            if(!String.IsNullOrWhiteSpace(path))
+            if(!string.IsNullOrWhiteSpace(path))
             {
                 BasePath = path;
             }
@@ -49,28 +62,20 @@ namespace DataLayer.Parser
 
         private SynchronizationContext SynchronizationContext { get; set; }
 
-        static DirectoryMonitor()
-        {
-            // ReSharper disable once CoVariantArrayConversion
-            Types = ((DocumentType[])Enum.GetValues(typeof(DocumentType)))
-                .Select(c => new {Attribute = c.GetAttributeOfType<ExtensionAttribute>(), Value = c})
-                .Where(c => c.Attribute != null)
-                .Select(c => new {c.Attribute.Extensions, c.Value})
-                .ToArray();
-        }
-
         public string BasePath
         {
             get { return _basePath; }
             set
             {
-                if(!String.IsNullOrWhiteSpace(value))
+                if(!string.IsNullOrWhiteSpace(value))
                 {
                     _basePath = Path.GetFullPath(value);
                     InitMonitoring(_basePath);
                 }
             }
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         private void InitMonitoring(string path)
         {
@@ -81,11 +86,11 @@ namespace DataLayer.Parser
             }
 
             Watcher = new FileSystemWatcher(path)
-                      {
-                          IncludeSubdirectories = true,
-                          NotifyFilter = NotifyFilters.LastWrite
-                                         | NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size
-                      };
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.LastWrite
+                               | NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size
+            };
 
             Watcher.Renamed += (sender, args) => { Update(); };
             Watcher.Deleted += (sender, args) => { Update(); };
@@ -94,67 +99,58 @@ namespace DataLayer.Parser
             Watcher.EnableRaisingEvents = true;
         }
 
-        private readonly object _syncDummy = new object();
-        private int _waitingThreads;
-
         public void Update()
         {
-            if(_waitingThreads > 1 || String.IsNullOrWhiteSpace(BasePath))
+            if(Interlocked.Read(ref _waitingThreads) > 1 || string.IsNullOrWhiteSpace(BasePath))
             {
                 return;
             }
 
             Task.Run(() =>
-                     {
-                         ++_waitingThreads;
-                         lock(_syncDummy)
-                         {
-                             SynchronizationContext.Post(c => State = DocumentMonitorState.Running, null);
-                             try
-                             {
-                                 var directories = Directory.GetDirectories(BasePath);
+            {
+                Interlocked.Increment(ref _waitingThreads);
+                lock(_syncDummy)
+                {
+                    SynchronizationContext.Post(c => State = DocumentMonitorState.Running, null);
+                    try
+                    {
+                        ProcessDirectory(BasePath);
 
-                                 //Parallel.ForEach(directories, s => { ProcessDirectory(Path.GetFullPath(s)); });
-                                 foreach(var s in directories)
-                                 {
-                                     ProcessDirectory(Path.GetFullPath(s));
-                                 }
+                        using(var ctx = new DdbContext())
+                        {
+                            SynchronizationContext.Post(c => State = DocumentMonitorState.Deleting, null);
 
-                                 using(var ctx = new DdbContext())
-                                 {
-                                     SynchronizationContext.Post(c => State = DocumentMonitorState.Deleting, null);
+                            foreach(var document in ctx.Documents)
+                            {
+                                var path = Path.Combine(document.FullPath, document.Name);
+                                if(!File.Exists(path))
+                                {
+                                    ctx.Documents.Remove(document);
+                                    StatisticsModel.Instance.ParsedDocumentsCount -= 1;
+                                    if(document.Cached)
+                                    {
+                                        FtsService.ClearLuceneIndexRecord(document.Id);
+                                        StatisticsModel.Instance.DocumentsInCacheCount -= 1;
+                                    }
+                                }
+                            }
 
-                                     foreach(var document in ctx.Documents)
-                                     {
-                                         var path = Path.Combine(document.FullPath, document.Name);
-                                         if(!File.Exists(path))
-                                         {
-                                             ctx.Documents.Remove(document);
-                                             StatisticsModel.Instance.ParsedDocumentsCount -= 1;
-                                             if(document.Cached)
-                                             {
-                                                 FtsService.ClearLuceneIndexRecord(document.Id);
-                                                 StatisticsModel.Instance.DocumentsInCacheCount -= 1;
-                                             }
-                                         }
-                                     }
+                            ctx.SaveChanges();
 
-                                     ctx.SaveChanges();
-
-                                     StatisticsModel.Instance.Refresh(StatisticsModelRefreshMethod.UpdateForDocumentMonitor);
-                                 }
-                             }
-                             catch(Exception e)
-                             {
-                                 Logger.Instance.ErrorException("Unable to update directory cache: {0}", e);
-                             }
-                             finally
-                             {
-                                 SynchronizationContext.Post(c => State = DocumentMonitorState.Idle, null);
-                                 --_waitingThreads;
-                             }
-                         }
-                     });
+                            StatisticsModel.Instance.Refresh(StatisticsModelRefreshMethod.UpdateForDocumentMonitor);
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        Logger.Instance.ErrorException("Unable to update directory cache: {0}", e);
+                    }
+                    finally
+                    {
+                        SynchronizationContext.Post(c => State = DocumentMonitorState.Idle, null);
+                        Interlocked.Decrement(ref _waitingThreads);
+                    }
+                }
+            });
         }
 
         private void ProcessDirectory(string path)
@@ -237,13 +233,13 @@ namespace DataLayer.Parser
             if(document == null)
             {
                 document = new Document
-                           {
-                               Name = fileName,
-                               Type = fileType,
-                               FullPath = fullPath,
-                               Cached = false,
-                               LastEditDateTime = lastEditTime
-                           };
+                {
+                    Name = fileName,
+                    Type = fileType,
+                    FullPath = fullPath,
+                    Cached = false,
+                    LastEditDateTime = lastEditTime
+                };
 
                 StatisticsModel.Instance.ParsedDocumentsCount += 1;
 
@@ -276,8 +272,6 @@ namespace DataLayer.Parser
 
             return DocumentType.Undefined;
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
