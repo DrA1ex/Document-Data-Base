@@ -25,7 +25,6 @@ namespace DataLayer.Parser
     {
         private static readonly dynamic[] Types;
 
-        private readonly List<WatcherChangedEventArgs> _pendingEvents = new List<WatcherChangedEventArgs>();
         private readonly ReaderWriterLockSlim _processingReadWriteLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         private readonly object _syncDummy = new object();
         private string _basePath;
@@ -51,6 +50,7 @@ namespace DataLayer.Parser
                 BasePath = path;
             }
             SynchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext();
+            PendingEvents = new List<WatcherChangedEventArgs>();
         }
 
         private FileSystemWatcher Watcher { get; set; }
@@ -66,7 +66,7 @@ namespace DataLayer.Parser
             }
         }
 
-        private SynchronizationContext SynchronizationContext { get; set; }
+        private SynchronizationContext SynchronizationContext { get; }
 
         public string BasePath
         {
@@ -81,10 +81,7 @@ namespace DataLayer.Parser
             }
         }
 
-        private List<WatcherChangedEventArgs> PendingEvents
-        {
-            get { return _pendingEvents; }
-        }
+        private List<WatcherChangedEventArgs> PendingEvents { get; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -100,8 +97,7 @@ namespace DataLayer.Parser
             Watcher = new FileSystemWatcher(path)
             {
                 IncludeSubdirectories = true,
-                NotifyFilter = NotifyFilters.LastWrite
-                               | NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName
             };
 
             Watcher.Renamed += WatcherOnNewEvent;
@@ -114,7 +110,12 @@ namespace DataLayer.Parser
 
         private void WatcherOnNewEvent(object sender, FileSystemEventArgs args)
         {
-            ProcessChangeEvents(args);
+            //TODO: implement directory changes handling
+            //TODO: find way to determine is it directory or file
+            if(!string.IsNullOrEmpty(Path.GetExtension(args.FullPath)))
+            {
+                ProcessChangeEvents(args);
+            }
         }
 
         public void Update()
@@ -184,6 +185,7 @@ namespace DataLayer.Parser
             //TODO: maybe use smth more simple instead of RW locks?
             _processingReadWriteLock.EnterReadLock();
 
+            //TODO: implement directory changes handling
             switch(arg.ChangeType)
             {
                 case WatcherChangeTypes.Deleted:
@@ -209,6 +211,7 @@ namespace DataLayer.Parser
                     {
                         _processingReadWriteLock.EnterWriteLock();
                         var changes = PendingEvents.ToArray();
+                        PendingEvents.Clear();
                         _processingReadWriteLock.ExitWriteLock();
 
                         ProcessChangeEventsInternal(changes);
@@ -222,7 +225,6 @@ namespace DataLayer.Parser
             try
             {
                 Interlocked.Increment(ref _processChangesThreads);
-                SynchronizationContext.Post(c => State = DocumentMonitorState.ProcessChanges, null);
                 SynchronizationContext.Post(c => State = DocumentMonitorState.ProcessChanges, null);
 
                 //TODO: Refactor

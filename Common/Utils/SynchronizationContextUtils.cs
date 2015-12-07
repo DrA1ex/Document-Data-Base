@@ -14,5 +14,10 @@ namespace Common.Utils
         {
             ctx.Post((o) => action(), null);
         }
+
+        public static void Send<T>(this SynchronizationContext ctx, Action<T> d, T state)
+        {
+            ctx.Send((o) => d((T)o), state);
+        }
     }
 }

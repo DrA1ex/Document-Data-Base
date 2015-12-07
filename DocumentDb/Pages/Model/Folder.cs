@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using DataLayer.Model;
 using FirstFloor.ModernUI.Presentation;
@@ -7,8 +8,8 @@ namespace DocumentDb.Pages.Model
 {
     public class Folder : NotifyPropertyChanged
     {
-        private ICollection<Document> _documents;
-        private ICollection<Folder> _folders;
+        private ICollection<Document> _documents = new List<Document>();
+        private ObservableCollection<Folder> _folders = new ObservableCollection<Folder>();
         private string _fullPath;
         private string _name;
 
@@ -38,18 +39,18 @@ namespace DocumentDb.Pages.Model
             set
             {
                 _documents = value;
-                OnPropertyChanged("Documents");
+                RaiseDocumentsChanged();
             }
         }
 
-        public ICollection<Folder> Folders
+        public void RaiseDocumentsChanged()
+        {
+            OnPropertyChanged("Documents");
+        }
+
+        public ObservableCollection<Folder> Folders
         {
             get { return _folders; }
-            set
-            {
-                _folders = value;
-                OnPropertyChanged("RootFolder");
-            }
         }
 
         public bool HasChildren

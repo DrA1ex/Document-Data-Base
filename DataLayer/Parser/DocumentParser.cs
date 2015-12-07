@@ -130,7 +130,7 @@ namespace DataLayer.Parser
                         }
                         catch(OperationCanceledException)
                         {
-                            //Do nothing
+                            //Then nothing
                         }
 
                         try

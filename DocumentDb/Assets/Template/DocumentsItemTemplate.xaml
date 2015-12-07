@@ -76,7 +76,7 @@
 
             <mui:BBCodeBlock Grid.Row="1" Grid.Column="1" Margin="6" VerticalAlignment="Center"
                              FontSize="22"
-                             BBCode="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}}"
+                             BBCode="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}, Mode=OneWay}"
                              TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis" />
 
             <mui:BBCodeBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding DocumentContent}"
@@ -98,10 +98,10 @@
                     <ColumnDefinition Width="Auto" SharedSizeGroup="LastEditText" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="{Binding Cached, Converter={StaticResource CacheStateConverter}}" />
+                <TextBlock Text="{Binding Cached, Converter={StaticResource CacheStateConverter}, Mode=OneWay}" />
 
                 <TextBlock Grid.Column="3"
-                           Text="{Binding LastEditDateTime, Converter={StaticResource DateTimeConverter}}" />
+                           Text="{Binding LastEditDateTime, Converter={StaticResource DateTimeConverter}, Mode=OneWay}" />
             </Grid>
         </Grid>
 

@@ -29,7 +29,7 @@ namespace DocumentDb.Pages
             if(folder != null)
             {
                 DocumentsScrollViewer.ScrollToTop();
-                ViewModel.SetDocuments(folder.Documents.Select(c => c.Id).ToArray());
+                ViewModel.SetDocuments(folder.FullPath, folder.Documents.Select(c => c.Id).ToArray());
             }
         }
     }
