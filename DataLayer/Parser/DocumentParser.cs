@@ -191,6 +191,7 @@ namespace DataLayer.Parser
                 if(WorkerTask == null)
                 {
                     PauseResetEvent.Set();
+                    //TODO: Create Thread or get from ThreadPool. Don't use Task
                     WorkerTask = Task.Run((Action)ParseDocuments, CancellationTokenSource.Token);
                 }
             }

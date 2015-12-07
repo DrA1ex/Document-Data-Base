@@ -9,5 +9,10 @@ namespace Common.Utils
         {
             ctx.Post(o => d((T)o), state);
         }
+
+        public static void Post(this SynchronizationContext ctx, Action action)
+        {
+            ctx.Post((o) => action(), null);
+        }
     }
 }

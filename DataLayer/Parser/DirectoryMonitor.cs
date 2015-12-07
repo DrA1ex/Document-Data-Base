@@ -17,6 +17,7 @@ namespace DataLayer.Parser
     {
         [Description("Ожидание")] Idle,
         [Description("Индексирование")] Running,
+        [Description("Обработка изменений")] ProcessChanges,
         [Description("Очистка")] Deleting
     }
 
@@ -24,10 +25,14 @@ namespace DataLayer.Parser
     {
         private static readonly dynamic[] Types;
 
+        private readonly List<WatcherChangedEventArgs> _pendingEvents = new List<WatcherChangedEventArgs>();
+        private readonly ReaderWriterLockSlim _processingReadWriteLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         private readonly object _syncDummy = new object();
         private string _basePath;
+        private long _processChangesThreads;
         private DocumentMonitorState _state;
-        private long _waitingThreads;
+
+        private long _updateIndexThreads;
 
         static DirectoryMonitor()
         {
@@ -49,6 +54,7 @@ namespace DataLayer.Parser
         }
 
         private FileSystemWatcher Watcher { get; set; }
+
 
         public DocumentMonitorState State
         {
@@ -75,6 +81,11 @@ namespace DataLayer.Parser
             }
         }
 
+        private List<WatcherChangedEventArgs> PendingEvents
+        {
+            get { return _pendingEvents; }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         private void InitMonitoring(string path)
@@ -83,6 +94,7 @@ namespace DataLayer.Parser
             {
                 Watcher.Dispose();
                 Watcher = null;
+                PendingEvents.Clear();
             }
 
             Watcher = new FileSystemWatcher(path)
@@ -92,23 +104,30 @@ namespace DataLayer.Parser
                                | NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size
             };
 
-            Watcher.Renamed += (sender, args) => { Update(); };
-            Watcher.Deleted += (sender, args) => { Update(); };
-            Watcher.Created += (sender, args) => { Update(); };
+            Watcher.Renamed += WatcherOnNewEvent;
+            Watcher.Deleted += WatcherOnNewEvent;
+            Watcher.Created += WatcherOnNewEvent;
+            Watcher.Changed += WatcherOnNewEvent;
 
             Watcher.EnableRaisingEvents = true;
         }
 
+        private void WatcherOnNewEvent(object sender, FileSystemEventArgs args)
+        {
+            ProcessChangeEvents(args);
+        }
+
         public void Update()
         {
-            if(Interlocked.Read(ref _waitingThreads) > 1 || string.IsNullOrWhiteSpace(BasePath))
+            if(Interlocked.Read(ref _updateIndexThreads) > 1 || string.IsNullOrWhiteSpace(BasePath))
             {
                 return;
             }
 
             Task.Run(() =>
             {
-                Interlocked.Increment(ref _waitingThreads);
+                Interlocked.Increment(ref _updateIndexThreads);
+
                 lock(_syncDummy)
                 {
                     SynchronizationContext.Post(c => State = DocumentMonitorState.Running, null);
@@ -118,14 +137,20 @@ namespace DataLayer.Parser
 
                         using(var ctx = new DdbContext())
                         {
+                            ctx.Configuration.AutoDetectChangesEnabled = false;
+                            ctx.Configuration.ValidateOnSaveEnabled = false;
+
                             SynchronizationContext.Post(c => State = DocumentMonitorState.Deleting, null);
+
+                            var documentsToDelete = new List<Document>();
 
                             foreach(var document in ctx.Documents)
                             {
                                 var path = Path.Combine(document.FullPath, document.Name);
                                 if(!File.Exists(path))
                                 {
-                                    ctx.Documents.Remove(document);
+                                    documentsToDelete.Add(document);
+                                    OnIndexChanged(new DocumentChangedEventArgs {Kind = IndexChangeKind.Removed, Document = document});
                                     StatisticsModel.Instance.ParsedDocumentsCount -= 1;
                                     if(document.Cached)
                                     {
@@ -135,6 +160,7 @@ namespace DataLayer.Parser
                                 }
                             }
 
+                            ctx.Documents.RemoveRange(documentsToDelete);
                             ctx.SaveChanges();
 
                             StatisticsModel.Instance.Refresh(StatisticsModelRefreshMethod.UpdateForDocumentMonitor);
@@ -147,10 +173,153 @@ namespace DataLayer.Parser
                     finally
                     {
                         SynchronizationContext.Post(c => State = DocumentMonitorState.Idle, null);
-                        Interlocked.Decrement(ref _waitingThreads);
+                        Interlocked.Decrement(ref _updateIndexThreads);
                     }
                 }
             });
+        }
+
+        private void ProcessChangeEvents(FileSystemEventArgs arg)
+        {
+            //TODO: maybe use smth more simple instead of RW locks?
+            _processingReadWriteLock.EnterReadLock();
+
+            switch(arg.ChangeType)
+            {
+                case WatcherChangeTypes.Deleted:
+                case WatcherChangeTypes.Changed:
+                case WatcherChangeTypes.Created:
+                    PendingEvents.Add(new WatcherChangedEventArgs {Kind = arg.ChangeType.AsIndexChangeKind(), FullPath = arg.FullPath});
+                    break;
+                case WatcherChangeTypes.Renamed:
+                    if(arg is RenamedEventArgs)
+                    {
+                        PendingEvents.Add(new WatcherRenameEventArgs {FullPath = arg.FullPath, OldFullPath = ((RenamedEventArgs)arg).OldFullPath});
+                    }
+                    break;
+            }
+
+            _processingReadWriteLock.ExitReadLock();
+
+            if(Interlocked.Read(ref _processChangesThreads) < 2)
+            {
+                Task.Run(() =>
+                {
+                    lock(_syncDummy)
+                    {
+                        _processingReadWriteLock.EnterWriteLock();
+                        var changes = PendingEvents.ToArray();
+                        _processingReadWriteLock.ExitWriteLock();
+
+                        ProcessChangeEventsInternal(changes);
+                    }
+                });
+            }
+        }
+
+        private void ProcessChangeEventsInternal(WatcherChangedEventArgs[] changes)
+        {
+            try
+            {
+                Interlocked.Increment(ref _processChangesThreads);
+                SynchronizationContext.Post(c => State = DocumentMonitorState.ProcessChanges, null);
+                SynchronizationContext.Post(c => State = DocumentMonitorState.ProcessChanges, null);
+
+                //TODO: Refactor
+                using(var ctx = new DdbContext())
+                {
+                    foreach(var change in changes)
+                    {
+                        var filePath = change.FullPath;
+                        var fileName = Path.GetFileName(filePath);
+                        var fileType = GetTypeForFileName(fileName);
+                        var fullPath = Path.GetDirectoryName(filePath);
+
+                        //TODO: Handle case when there are several events for single file
+                        Document document = null;
+                        Document oldDocument = null;
+                        switch(change.Kind)
+                        {
+                            case IndexChangeKind.New:
+                                if(!ctx.Documents.HasFile(fullPath, fileName))
+                                {
+                                    document = new Document
+                                    {
+                                        Name = fileName,
+                                        FullPath = fullPath,
+                                        Type = fileType,
+                                        LastEditDateTime = File.GetLastWriteTime(filePath)
+                                    };
+
+                                    ctx.Documents.Add(document);
+                                    StatisticsModel.Instance.ParsedDocumentsCount += 1;
+                                }
+                                break;
+
+                            case IndexChangeKind.Updated:
+                                document = ctx.Documents.FindFile(fullPath, fileName);
+                                if(document != null)
+                                {
+                                    var lastEdit = File.GetLastWriteTime(filePath);
+                                    if((lastEdit - document.LastEditDateTime).TotalSeconds > 1)
+                                    {
+                                        document.LastEditDateTime = lastEdit;
+                                        StatisticsModel.Instance.DocumentsInCacheCount -= 1;
+                                    }
+                                }
+                                break;
+
+                            case IndexChangeKind.Moved:
+                                var oldFilePath = ((WatcherRenameEventArgs)change).OldFullPath;
+                                var oldFullPath = Path.GetDirectoryName(oldFilePath);
+                                var oldFileName = Path.GetFileName(oldFilePath);
+
+                                document = ctx.Documents.FindFile(oldFullPath, oldFileName);
+                                if(document != null)
+                                {
+                                    oldDocument = (Document)document.Clone();
+                                    document.FullPath = fullPath;
+                                    document.Name = fileName;
+                                    document.Cached = false;
+                                    document.DocumentContent = null;
+                                }
+                                break;
+
+                            case IndexChangeKind.Removed:
+                                document = ctx.Documents.FindFile(fullPath, fileName);
+                                if(document != null)
+                                {
+                                    ctx.Documents.Remove(document);
+                                    StatisticsModel.Instance.ParsedDocumentsCount -= 1;
+                                }
+                                break;
+                        }
+
+                        if(document != null)
+                        {
+                            if(change.Kind != IndexChangeKind.Moved)
+                            {
+                                OnIndexChanged(new DocumentChangedEventArgs {Kind = change.Kind, Document = document});
+                            }
+                            else
+                            {
+                                OnIndexChanged(new DocumentMovedEventArgs {Kind = change.Kind, Document = document, OldDocument = oldDocument});
+                            }
+                        }
+                    }
+
+                    ctx.SaveChanges();
+                }
+            }
+            catch(Exception e)
+            {
+                Logger.Instance.Error("Не удалось обработать изменения в отслеживаемой директории: {0}", (object)e);
+            }
+            finally
+            {
+                SynchronizationContext.Post(c => State = DocumentMonitorState.Idle, null);
+                Interlocked.Decrement(ref _processChangesThreads);
+            }
         }
 
         private void ProcessDirectory(string path)
@@ -244,11 +413,15 @@ namespace DataLayer.Parser
                 StatisticsModel.Instance.ParsedDocumentsCount += 1;
 
                 result.Add(document);
+                OnIndexChanged(new DocumentChangedEventArgs {Kind = IndexChangeKind.New, Document = document});
             }
             else if((lastEditTime - document.LastEditDateTime).TotalSeconds > 1) //SQL Server compact lose precision
             {
                 document.LastEditDateTime = lastEditTime;
                 document.Cached = false;
+                document.DocumentContent = null;
+
+                OnIndexChanged(new DocumentChangedEventArgs {Kind = IndexChangeKind.Updated, Document = document});
 
                 ctx.Entry(document).State = EntityState.Modified;
             }
@@ -271,6 +444,17 @@ namespace DataLayer.Parser
             }
 
             return DocumentType.Undefined;
+        }
+
+        public event EventHandler<DocumentChangedEventArgs> IndexChanged;
+
+        protected virtual void OnIndexChanged(DocumentChangedEventArgs e)
+        {
+            SynchronizationContext.Post(() =>
+            {
+                var handler = IndexChanged;
+                if(handler != null) handler(this, e);
+            });
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
