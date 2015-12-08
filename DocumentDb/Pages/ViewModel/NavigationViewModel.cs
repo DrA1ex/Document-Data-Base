@@ -31,6 +31,7 @@ namespace DocumentDb.Pages.ViewModel
         public NavigationViewModel()
         {
             ApplicationWorkers.DirectoryMonitor.IndexChanged += DirectoryMonitorOnIndexChanged;
+            ApplicationWorkers.DirectoryMonitor.NeedUpdate += ClearData;
 
             Refresh();
         }
@@ -103,7 +104,7 @@ namespace DocumentDb.Pages.ViewModel
             SynchronizationContext.Post(c => DocumentsIsLoading = true, null);
             CurrentPath = path;
 
-            lock(_syncDummy)
+            lock (_syncDummy)
             {
                 if(_cts != null)
                 {
@@ -114,7 +115,7 @@ namespace DocumentDb.Pages.ViewModel
 
             Task.Run(() =>
             {
-                lock(_syncDummy)
+                lock (_syncDummy)
                 {
                     SynchronizationContext.Post(c => _documents.Clear(), null);
                     var token = _cts.Token;
@@ -169,11 +170,32 @@ namespace DocumentDb.Pages.ViewModel
             }
         }
 
+
+        private void ClearData(object sender, EventArgs e)
+        {
+            RootFolder = null;
+            SearchMap = null;
+            Documents.Clear();
+
+            Refresh();
+        }
+
         public void Refresh()
         {
             if(FolderTreeIsLoading)
             {
                 return;
+            }
+
+            if(RootFolder == null)
+            {
+                if(SearchMap == null)
+                {
+                    SearchMap = new Dictionary<string, Folder>();
+                }
+
+                RootFolder = new Folder { FullPath = AppConfigurationStorage.Storage.CatalogPath };
+                SearchMap.Add(RootFolder.FullPath, RootFolder);
             }
 
             SynchronizationContext.Post(c => FolderTreeIsLoading = true, null);
@@ -184,8 +206,11 @@ namespace DocumentDb.Pages.ViewModel
                 {
                     var searchMap = new Dictionary<string, Folder>();
                     var folder = BuildFolderTree(searchMap);
-                    SynchronizationContext.Send(f => RootFolder = folder, folder);
-                    SynchronizationContext.Send(s => SearchMap = s, searchMap);
+                    if(folder != null)
+                    {
+                        SynchronizationContext.Send(f => RootFolder = folder, folder);
+                        SynchronizationContext.Send(s => SearchMap = s, searchMap);
+                    }
                 }
                 finally
                 {
@@ -283,7 +308,7 @@ namespace DocumentDb.Pages.ViewModel
 
         private void DirectoryMonitorOnIndexChanged(object sender, DocumentChangedEventArgs args)
         {
-            if(SearchMap != null)
+            if(SearchMap != null && RootFolder != null)
             {
                 var movedEventArgs = args as DocumentMovedEventArgs;
                 var docToFind = movedEventArgs != null ? movedEventArgs.OldDocument : args.Document;
@@ -345,7 +370,7 @@ namespace DocumentDb.Pages.ViewModel
                         SearchMap.TryGet(currentPath)
                             .Otherwise(() =>
                             {
-                                var newFolder = new Folder {FullPath = currentPath, Name = part};
+                                var newFolder = new Folder { FullPath = currentPath, Name = part };
                                 SearchMap[currentPath] = newFolder;
 
                                 lambdaLastFolder.Folders.Add(newFolder);
@@ -418,10 +443,7 @@ namespace DocumentDb.Pages.ViewModel
                         .ThenIf(CurrentPath == original.FullPath, () =>
                         {
                             Documents.Get(c => c.Name == original.Name)
-                                .Then(doc =>
-                                {
-                                    doc.Name = changed.Name;
-                                });
+                                .Then(doc => { doc.Name = changed.Name; });
                         });
                 })
                 .Otherwise(() => AddDocument(changed));

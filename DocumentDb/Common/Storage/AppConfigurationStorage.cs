@@ -20,7 +20,11 @@ namespace DocumentDb.Common.Storage
         public string CatalogPath
         {
             get { return GetterForModelProperty(c => c.CatalogPath); }
-            set { SetterForModelProperty(c => c.CatalogPath, value); }
+            set
+            {
+                SetterForModelProperty(c => c.CatalogPath, value);
+                ApplicationWorkers.DirectoryMonitor.OnNeedUpdate();
+            }
         }
 
         public Uri Theme

@@ -172,7 +172,7 @@ namespace DocumentDb.Pages.ViewModel
 
         private void UpdateIndex(object o)
         {
-            ApplicationWorkers.DirectoryMonitor.Update();
+            ApplicationWorkers.DirectoryMonitor.Update(true);
         }
 
         private void OptimizeFtsIndex()
@@ -191,6 +191,8 @@ namespace DocumentDb.Pages.ViewModel
                 StatisticsModel.Instance.DocumentsInCacheCount = 0;
                 StatisticsModel.Instance.ParsedDocumentsCount = 0;
             }
+
+            ApplicationWorkers.DirectoryMonitor.OnNeedUpdate();
         }
 
         private void ClearFtsIndex(object o)
@@ -207,6 +209,8 @@ namespace DocumentDb.Pages.ViewModel
 
                 StatisticsModel.Instance.DocumentsInCacheCount = 0;
             }
+
+            ApplicationWorkers.DirectoryMonitor.OnNeedUpdate();
         }
     }
 }

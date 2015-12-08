@@ -126,7 +126,7 @@ namespace DataLayer.Parser
             }
         }
 
-        public void Update()
+        public void Update(bool raiseUpdateEvent = false)
         {
             if(Interlocked.Read(ref _updateIndexThreads) > 1 || string.IsNullOrWhiteSpace(BasePath))
             {
@@ -183,6 +183,10 @@ namespace DataLayer.Parser
                     {
                         SynchronizationContext.Post(c => State = DocumentMonitorState.Idle, null);
                         Interlocked.Decrement(ref _updateIndexThreads);
+                        if(raiseUpdateEvent)
+                        {
+                            SynchronizationContext.Post(OnNeedUpdate);
+                        }
                     }
                 }
             });
@@ -457,6 +461,7 @@ namespace DataLayer.Parser
         }
 
         public event EventHandler<DocumentChangedEventArgs> IndexChanged;
+        public event EventHandler NeedUpdate; 
 
         protected virtual void OnIndexChanged(DocumentChangedEventArgs e)
         {
@@ -474,6 +479,11 @@ namespace DataLayer.Parser
             {
                 handler(this, new PropertyChangedEventArgs(propertyName));
             }
+        }
+
+        public virtual void OnNeedUpdate()
+        {
+            if(NeedUpdate != null) NeedUpdate.Invoke(this, EventArgs.Empty);
         }
     }
 }
