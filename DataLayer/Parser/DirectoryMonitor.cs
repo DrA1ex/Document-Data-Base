@@ -110,11 +110,19 @@ namespace DataLayer.Parser
 
         private void WatcherOnNewEvent(object sender, FileSystemEventArgs args)
         {
-            //TODO: implement directory changes handling
             //TODO: find way to determine is it directory or file
             if(!string.IsNullOrEmpty(Path.GetExtension(args.FullPath)))
             {
                 ProcessChangeEvents(args);
+            }
+            else
+            {
+                //TODO: implement directory changes handling
+
+                // This is temporal solution for handling directory changes
+                // e.g. if directory with files was moved into/from BasePath (or subfolders),
+                // only one event will be raised.
+                Update();
             }
         }
 
