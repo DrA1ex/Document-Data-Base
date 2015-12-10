@@ -55,7 +55,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Separator x:Name="ItemSeparator" Grid.ColumnSpan="2" Foreground="{StaticResource Accent}" Margin="3,0" />
+            <Separator x:Name="ItemSeparator" Grid.ColumnSpan="2" Foreground="{StaticResource Accent}" Margin="3,0" Grid.Row="3" />
 
             <mui:ModernButton
                 ToolTip="{Binding Type, Converter={StaticResource TypeDescriptionToString}}"
@@ -64,26 +64,19 @@
                 CommandParameter="{Binding}"
                 IconWidth="20" IconHeight="20" EllipseDiameter="38" EllipseStrokeThickness="2"
                 VerticalAlignment="Center" Margin="6"
-                Grid.Row="1"
+                Grid.Row="0"
                 Grid.Column="0" />
 
-            <!--<Path Stretch="Fill"
-                  ToolTip="{Binding Type, Converter={StaticResource TypeDescriptionToString}}"
-                  Style="{StaticResource IconStyle}"
-                  Width="23" Height="29" Fill="{DynamicResource Accent}" VerticalAlignment="Center" Margin="6"
-                  Grid.Row="1"
-                  Grid.Column="0" />-->
-
-            <mui:BBCodeBlock Grid.Row="1" Grid.Column="1" Margin="6" VerticalAlignment="Center"
+            <mui:BBCodeBlock Grid.Row="0" Grid.Column="1" Margin="6" VerticalAlignment="Center"
                              FontSize="22"
                              BBCode="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}, Mode=OneWay}"
                              TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis" />
 
-            <mui:BBCodeBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding DocumentContent}"
+            <mui:BBCodeBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding DocumentContent}"
                              Margin="6"
                              Visibility="{Binding DocumentContent, Converter={StaticResource StringEmptyToVisibility}}" />
 
-            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
+            <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
                 <Grid.Resources>
                     <Style TargetType="TextBlock">
                         <Setter Property="Margin" Value="6" />
@@ -104,12 +97,5 @@
                            Text="{Binding LastEditDateTime, Converter={StaticResource DateTimeConverter}, Mode=OneWay}" />
             </Grid>
         </Grid>
-
-        <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}"
-                         Value="{x:Null}">
-                <Setter TargetName="ItemSeparator" Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
-        </DataTemplate.Triggers>
     </DataTemplate>
 </ResourceDictionary>
