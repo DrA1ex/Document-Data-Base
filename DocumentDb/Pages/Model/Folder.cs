@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Windows.Data;
 using DataLayer.Model;
 using FirstFloor.ModernUI.Presentation;
 
@@ -9,7 +11,7 @@ namespace DocumentDb.Pages.Model
     public class Folder : NotifyPropertyChanged
     {
         private ICollection<Document> _documents = new List<Document>();
-        private ObservableCollection<Folder> _folders = new ObservableCollection<Folder>();
+        private readonly ObservableCollection<Folder> _folders = new ObservableCollection<Folder>();
         private string _fullPath;
         private string _name;
 

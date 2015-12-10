@@ -139,6 +139,32 @@ namespace Common.Monad
                 ? new Optional<TR>(result) 
                 : Optional<TR>.Empty();
         }
+
+        public static TR GetOrCreate<T, TR>(this IDictionary<T, TR> map, T key, TR empty)
+            where T : class
+            where TR : class
+        {
+            var existingValue = map.TryGet(key);
+            if(existingValue.IsDefined)
+            {
+                return existingValue.Get();
+            }
+
+            return map[key] = empty;
+        }
+
+        public static TR GetOrCreate<T, TR>(this IDictionary<T, TR> map, T key, Func<TR> empty)
+            where T : class
+            where TR : class
+        {
+            var existingValue = map.TryGet(key);
+            if(existingValue.IsDefined)
+            {
+                return existingValue.Get();
+            }
+
+            return map[key] = empty();
+        }
     }
 
     public static class EnumerableOptional

@@ -104,7 +104,7 @@ namespace DocumentDb.Pages.ViewModel
             SynchronizationContext.Post(c => DocumentsIsLoading = true, null);
             CurrentPath = path;
 
-            lock (_syncDummy)
+            lock(_syncDummy)
             {
                 if(_cts != null)
                 {
@@ -115,7 +115,7 @@ namespace DocumentDb.Pages.ViewModel
 
             Task.Run(() =>
             {
-                lock (_syncDummy)
+                lock(_syncDummy)
                 {
                     SynchronizationContext.Post(c => _documents.Clear(), null);
                     var token = _cts.Token;
@@ -187,14 +187,14 @@ namespace DocumentDb.Pages.ViewModel
                 return;
             }
 
-            if(RootFolder == null)
+            if(RootFolder == null && AppConfigurationStorage.Storage.CatalogPath != null)
             {
                 if(SearchMap == null)
                 {
                     SearchMap = new Dictionary<string, Folder>();
                 }
 
-                RootFolder = new Folder { FullPath = AppConfigurationStorage.Storage.CatalogPath };
+                RootFolder = new Folder {FullPath = AppConfigurationStorage.Storage.CatalogPath};
                 SearchMap.Add(RootFolder.FullPath, RootFolder);
             }
 
@@ -232,78 +232,17 @@ namespace DocumentDb.Pages.ViewModel
                     .OrderBy(c => c.FullPath).ToArray();
             }
 
-            var folders = new List<Folder>();
-
             if(docs.Any())
             {
                 foreach(var document in docs)
                 {
-                    var folder = GetFolder(folders, searchMap, baseCatalog, document.FullPath);
+                    var folder = GetOrCreateFolder(searchMap, baseCatalog, document.FullPath)
+                        .Get();
                     folder.Documents.Add(document);
                 }
             }
 
-            return folders.SingleOrDefault();
-        }
-
-        private Folder GetFolder(List<Folder> folders, IDictionary<string, Folder> searchMap, string basePath, string path)
-        {
-            if(searchMap.ContainsKey(path))
-            {
-                var existingFolder = searchMap[path];
-                return existingFolder;
-            }
-
-            var parts = path
-                .Replace(basePath, "")
-                .TrimStart(Path.DirectorySeparatorChar)
-                .Split(Path.DirectorySeparatorChar);
-
-            Folder lastFolder;
-            searchMap.TryGetValue(basePath, out lastFolder);
-            foreach(var part in parts)
-            {
-                var fullPath = Path.Combine(lastFolder != null ? lastFolder.FullPath : basePath, part);
-
-                Folder folder;
-                if(searchMap.ContainsKey(fullPath))
-                {
-                    folder = searchMap[fullPath];
-                }
-                else if(lastFolder != null)
-                {
-                    folder = lastFolder.Folders.SingleOrDefault(c => c.Name == part);
-                }
-                else
-                {
-                    folder = folders.SingleOrDefault(c => c.Name == part);
-                }
-
-
-                if(folder == null)
-                {
-                    folder = new Folder
-                    {
-                        Name = part,
-                        FullPath = fullPath
-                    };
-
-                    searchMap.Add(folder.FullPath, folder);
-
-                    if(lastFolder != null)
-                    {
-                        lastFolder.Folders.Add(folder);
-                    }
-                    else
-                    {
-                        folders.Add(folder);
-                    }
-                }
-
-                lastFolder = folder;
-            }
-
-            return lastFolder;
+            return searchMap[baseCatalog];
         }
 
         private void DirectoryMonitorOnIndexChanged(object sender, DocumentChangedEventArgs args)
@@ -352,31 +291,42 @@ namespace DocumentDb.Pages.ViewModel
 
         private Optional<Folder> GetOrCreateFolder(string fullPath)
         {
-            return SearchMap.TryGet(fullPath)
+            return GetOrCreateFolder(SearchMap, RootFolder.FullPath, fullPath);
+        }
+
+        private Optional<Folder> GetOrCreateFolder(IDictionary<string, Folder> searchMap, string basePath, string fullPath)
+        {
+            return searchMap.TryGet(fullPath)
                 .OrElseGet(() =>
                 {
-                    var basePath = RootFolder.FullPath;
                     var parts = fullPath
                         .Replace(basePath, "")
                         .TrimStart(Path.DirectorySeparatorChar)
                         .Split(Path.DirectorySeparatorChar);
 
-                    var lastFolder = RootFolder;
+                    var lastFolder = searchMap.GetOrCreate(basePath, () => new Folder
+                    {
+                        FullPath = basePath,
+                        Name = Path.GetFileName(basePath)
+                    });
+
                     foreach(var part in parts)
                     {
-                        var currentPath = Path.Combine(basePath, part);
+                        var currentPath = Path.Combine(lastFolder.FullPath, part);
 
+                        var lambdaPart = part;
                         var lambdaLastFolder = lastFolder;
-                        SearchMap.TryGet(currentPath)
+
+                        searchMap.TryGet(currentPath)
                             .Otherwise(() =>
                             {
-                                var newFolder = new Folder { FullPath = currentPath, Name = part };
-                                SearchMap[currentPath] = newFolder;
+                                var newFolder = new Folder {FullPath = currentPath, Name = lambdaPart};
+                                searchMap[currentPath] = newFolder;
 
                                 lambdaLastFolder.Folders.Add(newFolder);
                             });
 
-                        lastFolder = SearchMap[currentPath];
+                        lastFolder = searchMap[currentPath];
                     }
 
                     return lastFolder;

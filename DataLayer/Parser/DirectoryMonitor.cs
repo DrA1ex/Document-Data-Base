@@ -66,7 +66,7 @@ namespace DataLayer.Parser
             }
         }
 
-        private SynchronizationContext SynchronizationContext { get; }
+        private SynchronizationContext SynchronizationContext { get; set; }
 
         public string BasePath
         {
@@ -81,7 +81,7 @@ namespace DataLayer.Parser
             }
         }
 
-        private List<WatcherChangedEventArgs> PendingEvents { get; }
+        private List<WatcherChangedEventArgs> PendingEvents { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
