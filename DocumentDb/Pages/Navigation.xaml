@@ -39,7 +39,7 @@
 
         <TreeView Grid.Column="0" SelectedItemChanged="TreeView_OnSelectedItemChanged" Margin="6"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <TreeViewItem Header="{Binding CollectionName}" ItemsSource="{Binding RootFolder.Folders, Mode=OneWay}"
+            <TreeViewItem Header="{Binding CollectionName}" ItemsSource="{Binding RootFolder.FoldersSource, Mode=OneWay}"
                           IsExpanded="True" />
         </TreeView>
 

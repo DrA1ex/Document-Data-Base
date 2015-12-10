@@ -14,6 +14,7 @@ namespace DocumentDb.Pages.Model
         private readonly ObservableCollection<Folder> _folders = new ObservableCollection<Folder>();
         private string _fullPath;
         private string _name;
+        private CollectionViewSource _folderSource;
 
         public string FullPath
         {
@@ -53,6 +54,21 @@ namespace DocumentDb.Pages.Model
         public ObservableCollection<Folder> Folders
         {
             get { return _folders; }
+        }
+
+        public ICollectionView FoldersSource
+        {
+            get
+            {
+                if(_folderSource == null)
+                {
+                    _folderSource = new CollectionViewSource {Source = Folders};
+                    _folderSource.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                    _folderSource.IsLiveSortingRequested = true;
+                }
+
+                return _folderSource.View;
+            }
         }
 
         public bool HasChildren
