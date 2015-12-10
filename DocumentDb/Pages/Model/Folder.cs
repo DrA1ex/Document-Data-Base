@@ -1,20 +1,21 @@
-﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Data;
 using DataLayer.Model;
+using DocumentDb.Common.Storage;
 using FirstFloor.ModernUI.Presentation;
 
 namespace DocumentDb.Pages.Model
 {
     public class Folder : NotifyPropertyChanged
     {
-        private ICollection<Document> _documents = new List<Document>();
+        private readonly ObservableCollection<Document> _documents = new ObservableCollection<Document>();
         private readonly ObservableCollection<Folder> _folders = new ObservableCollection<Folder>();
+        private CollectionViewSource _documentsSource;
+        private CollectionViewSource _folderSource;
         private string _fullPath;
         private string _name;
-        private CollectionViewSource _folderSource;
 
         public string FullPath
         {
@@ -36,24 +37,35 @@ namespace DocumentDb.Pages.Model
             }
         }
 
-        public ICollection<Document> Documents
+        public ObservableCollection<Document> Documents
         {
             get { return _documents; }
-            set
-            {
-                _documents = value;
-                RaiseDocumentsChanged();
-            }
-        }
-
-        public void RaiseDocumentsChanged()
-        {
-            OnPropertyChanged("Documents");
         }
 
         public ObservableCollection<Folder> Folders
         {
             get { return _folders; }
+        }
+
+        public ICollectionView DocumentsSource
+        {
+            get
+            {
+                if(_documentsSource == null)
+                {
+                    _documentsSource = new CollectionViewSource {Source = Documents};
+                    _documentsSource.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+                    _documentsSource.IsLiveSortingRequested = true;
+                    _documentsSource.Filter += (sender, args) =>
+                    {
+                        var doc = (Document)args.Item;
+                        args.Accepted = doc.Type != DocumentType.Undefined || AppConfigurationStorage.Storage.IndexUnsupportedFormats;
+                    };
+                    _documentsSource.IsLiveFilteringRequested = true;
+                }
+
+                return _documentsSource.View;
+            }
         }
 
         public ICollectionView FoldersSource
@@ -74,6 +86,11 @@ namespace DocumentDb.Pages.Model
         public bool HasChildren
         {
             get { return Folders != null && Folders.Any() || Documents != null && Documents.Any(); }
+        }
+
+        public void RaiseDocumentsChanged()
+        {
+            OnPropertyChanged("Documents");
         }
     }
 }

@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Common.Monad;
@@ -22,8 +21,7 @@ namespace DocumentDb.Pages.ViewModel
     public sealed class NavigationViewModel : NavigationViewModelBase
     {
         private readonly object _syncDummy = new object();
-        private CancellationTokenSource _cts;
-        private ObservableCollection<Document> _documents;
+        private ICollectionView _documentsSource;
         private bool _documentsIsLoading;
         private bool _folderTreeIsLoading;
         private Folder _rootFolder;
@@ -82,78 +80,15 @@ namespace DocumentDb.Pages.ViewModel
 
         private IDictionary<string, Folder> SearchMap { get; set; }
 
-        public ObservableCollection<Document> Documents
+        public ICollectionView DocumentsSource
         {
-            get { return _documents ?? (_documents = new ObservableCollection<Document>()); }
-        }
-
-        public string CurrentPath { get; set; }
-
-        private void RaiseDocumentsChanged()
-        {
-            OnPropertyChanged("Documents");
-        }
-
-        public void SetDocuments(string path, long[] documentsId)
-        {
-            if(_cts != null)
+            get { return _documentsSource; }
+            set
             {
-                _cts.Cancel();
+                _documentsSource = value;
+                OnPropertyChanged();
             }
-
-            SynchronizationContext.Post(c => DocumentsIsLoading = true, null);
-            CurrentPath = path;
-
-            lock(_syncDummy)
-            {
-                if(_cts != null)
-                {
-                    _cts.Dispose();
-                }
-                _cts = new CancellationTokenSource();
-            }
-
-            Task.Run(() =>
-            {
-                lock(_syncDummy)
-                {
-                    SynchronizationContext.Post(c => _documents.Clear(), null);
-                    var token = _cts.Token;
-
-                    try
-                    {
-                        using(var ctx = new DdbContext())
-                        {
-                            var documents = ctx.Documents.Where(c => documentsId.Contains(c.Id));
-                            var docsEnumerated = AppConfigurationStorage.Storage.IndexUnsupportedFormats
-                                ? documents
-                                : documents.Where(c => c.Type != DocumentType.Undefined);
-
-
-                            foreach(var document in docsEnumerated)
-                            {
-                                if(!token.IsCancellationRequested)
-                                {
-                                    SynchronizationContext.Post(c => _documents.Add((Document)c), document);
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        if(!token.IsCancellationRequested)
-                        {
-                            SynchronizationContext.Post(c => RaiseDocumentsChanged(), null);
-                            SynchronizationContext.Post(c => DocumentsIsLoading = false, null);
-                        }
-                    }
-                }
-            }, _cts.Token);
-        }
+        }        
 
         protected override void OpenFile(Document doc)
         {
@@ -175,7 +110,7 @@ namespace DocumentDb.Pages.ViewModel
         {
             RootFolder = null;
             SearchMap = null;
-            Documents.Clear();
+            DocumentsSource = null;
 
             Refresh();
         }
@@ -202,20 +137,23 @@ namespace DocumentDb.Pages.ViewModel
 
             Task.Run(() =>
             {
-                try
+                lock(_syncDummy)
                 {
-                    var searchMap = new Dictionary<string, Folder>();
-                    var folder = BuildFolderTree(searchMap);
-                    if(folder != null)
+                    try
                     {
-                        SynchronizationContext.Send(f => RootFolder = folder, folder);
-                        SynchronizationContext.Send(s => SearchMap = s, searchMap);
+                        var searchMap = new Dictionary<string, Folder>();
+                        var folder = BuildFolderTree(searchMap);
+                        if(folder != null)
+                        {
+                            SynchronizationContext.Send(f => RootFolder = folder, folder);
+                            SynchronizationContext.Send(s => SearchMap = s, searchMap);
+                        }
                     }
-                }
-                finally
-                {
-                    SynchronizationContext.Post(c => OnPropertyChanged("CollectionName"), null);
-                    SynchronizationContext.Post(c => FolderTreeIsLoading = false, null);
+                    finally
+                    {
+                        SynchronizationContext.Post(c => OnPropertyChanged("CollectionName"), null);
+                        SynchronizationContext.Post(c => FolderTreeIsLoading = false, null);
+                    }
                 }
             });
         }
@@ -223,6 +161,8 @@ namespace DocumentDb.Pages.ViewModel
         public Folder BuildFolderTree(IDictionary<string, Folder> searchMap)
         {
             var baseCatalog = AppConfigurationStorage.Storage.CatalogPath;
+            if(String.IsNullOrEmpty(baseCatalog))
+                return null;
 
             Document[] docs;
             using(var ctx = new DdbContext())
@@ -337,28 +277,14 @@ namespace DocumentDb.Pages.ViewModel
         {
             folder.Documents.Get(c => c.Name == name)
                 .ThenGet(doc => folder.Documents.Remove(doc))
-                .ThenIf(!folder.HasChildren, () => RemoveFolderTreeIfEmpty(folder))
-                .ThenIf(folder.FullPath == CurrentPath
-                    , () => Documents.Get(c => c.Name == name && c.FullPath == folder.FullPath)
-                        .ThenGet(Documents.Remove)
-                        .Then(RaiseDocumentsChanged));
+                .ThenIf(!folder.HasChildren, () => RemoveFolderTreeIfEmpty(folder));
         }
 
         private void AddDocument(Document document)
         {
             GetOrCreateFolder(document.FullPath)
                 .Then(f => f.Documents.Get(d => d.Name == document.Name)
-                    .Otherwise(() =>
-                    {
-                        f.Documents.Add(document);
-
-                        if(document.FullPath == CurrentPath)
-                        {
-                            Documents.Get(c => c.Name == document.Name && c.FullPath == document.FullPath)
-                                .Otherwise(() => Documents.Add(document))
-                                .Then(RaiseDocumentsChanged);
-                        }
-                    }));
+                    .Otherwise(() => f.Documents.Add(document)));
         }
 
         private void UpdateDocument(Document document)
@@ -369,16 +295,6 @@ namespace DocumentDb.Pages.ViewModel
                     {
                         d.Cached = document.Cached;
                         d.LastEditDateTime = document.LastEditDateTime;
-
-                        if(document.FullPath == CurrentPath)
-                        {
-                            Documents.Get(c => c.Name == document.Name)
-                                .Then(doc =>
-                                {
-                                    doc.Cached = document.Cached;
-                                    doc.LastEditDateTime = document.LastEditDateTime;
-                                });
-                        }
                     })
                     .Otherwise(() => AddDocument(document)));
         }
@@ -386,16 +302,8 @@ namespace DocumentDb.Pages.ViewModel
         private void RenameDocument(Document original, Document changed)
         {
             FindFolder(original.FullPath)
-                .Then(folder =>
-                {
-                    folder.Documents.Get(c => c.Name == original.Name)
-                        .Then(doc => { doc.Name = changed.Name; })
-                        .ThenIf(CurrentPath == original.FullPath, () =>
-                        {
-                            Documents.Get(c => c.Name == original.Name)
-                                .Then(doc => { doc.Name = changed.Name; });
-                        });
-                })
+                .Then(folder => folder.Documents.Get(c => c.Name == original.Name)
+                    .Then(doc => { doc.Name = changed.Name; }))
                 .Otherwise(() => AddDocument(changed));
         }
 

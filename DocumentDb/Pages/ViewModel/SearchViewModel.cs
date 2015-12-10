@@ -99,7 +99,16 @@ namespace DocumentDb.Pages.ViewModel
                     var folders = docs
                         .GroupBy(c => c.FullPath)
                         .OrderBy(c => c.Min(x => x.Order))
-                        .Select(c => new Folder {FullPath = c.Key, Documents = c.OrderBy(x => x.Order).ToArray()});
+                        .Select(c =>
+                        {
+                            var folder = new Folder {FullPath = c.Key};
+                            foreach(var doc in c.OrderBy(x => x.Order))
+                            {
+                                folder.Documents.Add(doc);
+                            }
+
+                            return folder;
+                        });
 
                     SynchronizationContext.Post(c => Folders.Clear(), null);
 

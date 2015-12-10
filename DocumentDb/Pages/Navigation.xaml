@@ -47,7 +47,7 @@
 
         <ScrollViewer x:Name="DocumentsScrollViewer" Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemTemplate="{StaticResource DocumentItemTemplate}"
-                          ItemsSource="{Binding Documents, Mode=OneWay}" />
+                          ItemsSource="{Binding DocumentsSource, Mode=OneWay}" />
         </ScrollViewer>
     </Grid>
 </UserControl>

@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Windows;
+﻿using System.Windows;
 using DocumentDb.Pages.Model;
 using DocumentDb.Pages.ViewModel;
 
@@ -29,7 +28,7 @@ namespace DocumentDb.Pages
             if(folder != null)
             {
                 DocumentsScrollViewer.ScrollToTop();
-                ViewModel.SetDocuments(folder.FullPath, folder.Documents.Select(c => c.Id).ToArray());
+                ViewModel.DocumentsSource = folder.DocumentsSource;
             }
         }
     }
