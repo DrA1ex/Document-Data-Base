@@ -25,29 +25,45 @@
         </Grid.ColumnDefinitions>
 
 
-        <Grid ZIndex="100500" Visibility="{Binding FolderTreeIsLoading, Converter={StaticResource BooleanToVisibility}}">
-            <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3"/>
+        <Grid ZIndex="100500"
+              Visibility="{Binding FolderTreeIsLoading, Converter={StaticResource BooleanToVisibility}}">
+            <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3" />
             <mui:ModernProgressRing IsActive="{Binding FolderTreeIsLoading}" Width="80" Height="80"
                                     Style="{DynamicResource WaveProgressRingStyle}" />
         </Grid>
 
-        <Grid Grid.Column="2" ZIndex="100500" Visibility="{Binding DocumentsIsLoading, Converter={StaticResource BooleanToVisibility}}">
-            <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3"/>
+        <Grid Grid.Column="2" ZIndex="100500"
+              Visibility="{Binding DocumentsIsLoading, Converter={StaticResource BooleanToVisibility}}">
+            <Rectangle Fill="{DynamicResource WindowBackground}" Opacity="0.3" />
             <mui:ModernProgressRing IsActive="{Binding DocumentsIsLoading}" Width="80" Height="80"
                                     Style="{DynamicResource WaveProgressRingStyle}" />
         </Grid>
 
         <TreeView Grid.Column="0" SelectedItemChanged="TreeView_OnSelectedItemChanged" Margin="6"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <TreeViewItem Header="{Binding CollectionName}" ItemsSource="{Binding RootFolder.FoldersSource, Mode=OneWay}"
+            <TreeViewItem Header="{Binding CollectionName}"
+                          ItemsSource="{Binding RootFolder.FoldersSource, Mode=OneWay}"
                           IsExpanded="True" />
         </TreeView>
 
         <Rectangle Grid.Column="1" Fill="{DynamicResource SeparatorBackground}" Width="1" />
 
-        <ScrollViewer x:Name="DocumentsScrollViewer" Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemTemplate="{StaticResource DocumentItemTemplate}"
-                          ItemsSource="{Binding DocumentsSource, Mode=OneWay}" />
-        </ScrollViewer>
+
+        <ListView x:Name="DocumentsListView" ItemTemplate="{StaticResource DocumentItemTemplate}" Grid.Row="0" Grid.Column="2" Margin="6"
+                  ItemsSource="{Binding DocumentsSource, Mode=OneWay}"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="DocumentsListViewSelectionChanged">
+            <ListView.ItemContainerStyle>
+                <Style BasedOn="{StaticResource {x:Type ListViewItem}}" TargetType="{x:Type ListViewItem}">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type ListViewItem}">
+                                <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListView.ItemContainerStyle>
+        </ListView>
     </Grid>
 </UserControl>

@@ -92,6 +92,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Common\ApplicationWorkers.cs" />
+    <Compile Include="Common\Extension\VisualTreeExtensions.cs" />
     <Compile Include="Common\Extension\WpfWindowExtensions.cs" />
     <Compile Include="Common\Storage\AppConfigurationStorage.cs" />
     <Compile Include="Common\Storage\DataStorage.cs" />
@@ -143,6 +144,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Assets\Template\DocumentsItemTemplate.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Assets\Template\SearchDocumentsItemTemplate.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

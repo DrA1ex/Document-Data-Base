@@ -1,4 +1,5 @@
 ﻿using System.Windows.Controls;
+using DocumentDb.Common.Extension;
 using DocumentDb.Pages.ViewModel;
 
 namespace DocumentDb.Pages
@@ -21,7 +22,20 @@ namespace DocumentDb.Pages
 
         private void SelectorOnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            DocumentScrollViewer.ScrollToTop();
+            //TODO: Find more elegant way to reset ScrollViewer position after ItemsSource changed
+            if(DocumentsListView.Items.Count > 0)
+            {
+                var scroll = DocumentsListView.FindVisualChild<ScrollViewer>();
+                if(scroll != null)
+                {
+                    scroll.ScrollToTop();
+                }
+            }
+        }
+
+        private void DocumentsListViewSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            DocumentsListView.SelectedIndex = -1;
         }
     }
 }
