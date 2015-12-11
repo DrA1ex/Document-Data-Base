@@ -18,6 +18,7 @@ namespace DocumentDb.Pages.ViewModel
         private ICommand _optimizeFtsIndexCommand;
         private RelayCommand _pauseParserCommand;
         private RelayCommand _startParserCommand;
+        private RelayCommand _stopDocumentMonitorCommand;
         private RelayCommand _stopParserCommand;
         private RelayCommand _updateIndexCommand;
 
@@ -124,6 +125,15 @@ namespace DocumentDb.Pages.ViewModel
             }
         }
 
+        public RelayCommand StopDocumentMonitorCommand
+        {
+            get
+            {
+                return _stopDocumentMonitorCommand ??
+                       (_stopDocumentMonitorCommand = new RelayCommand(StopDocumentMonitor, o => DocumentMonitorState == DocumentMonitorState.Running));
+            }
+        }
+
         public ICommand OptimizeFtsIndexCommand
         {
             get { return _optimizeFtsIndexCommand ?? (_optimizeFtsIndexCommand = new DelegateCommand(OptimizeFtsIndex)); }
@@ -155,6 +165,11 @@ namespace DocumentDb.Pages.ViewModel
             }
         }
 
+        private void StopDocumentMonitor(object obj)
+        {
+            ApplicationWorkers.DirectoryMonitor.Stop();
+        }
+
         private void StopParser(object o)
         {
             ApplicationWorkers.DocumentParser.Stop();
@@ -182,6 +197,8 @@ namespace DocumentDb.Pages.ViewModel
 
         private void ClearDbIndex(object o)
         {
+            ApplicationWorkers.DirectoryMonitor.Stop();
+
             FtsService.ClearLuceneIndex();
             using(var ctx = new DdbContext())
             {

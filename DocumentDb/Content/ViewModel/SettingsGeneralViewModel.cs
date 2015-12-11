@@ -64,6 +64,8 @@ namespace DocumentDb.Content.ViewModel
                 CurrentDirectory = dialog.SelectedPath;
 
                 ApplicationWorkers.DirectoryMonitor.BasePath = CurrentDirectory;
+
+                ApplicationWorkers.DirectoryMonitor.Stop();
                 ApplicationWorkers.DirectoryMonitor.Update();
             }
         }

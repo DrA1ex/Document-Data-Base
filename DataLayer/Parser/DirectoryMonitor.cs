@@ -28,6 +28,8 @@ namespace DataLayer.Parser
         private readonly ReaderWriterLockSlim _processingReadWriteLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         private readonly object _syncDummy = new object();
         private string _basePath;
+
+        private CancellationTokenSource _cts;
         private long _processChangesThreads;
         private DocumentMonitorState _state;
 
@@ -133,6 +135,13 @@ namespace DataLayer.Parser
                 return;
             }
 
+            if(_cts == null)
+            {
+                _cts = new CancellationTokenSource();
+            }
+
+            var token = _cts.Token;
+
             Task.Run(() =>
             {
                 Interlocked.Increment(ref _updateIndexThreads);
@@ -142,7 +151,7 @@ namespace DataLayer.Parser
                     SynchronizationContext.Post(c => State = DocumentMonitorState.Running, null);
                     try
                     {
-                        ProcessDirectory(BasePath);
+                        ProcessDirectory(BasePath, token);
 
                         using(var ctx = new DdbContext())
                         {
@@ -155,6 +164,8 @@ namespace DataLayer.Parser
 
                             foreach(var document in ctx.Documents)
                             {
+                                token.ThrowIfCancellationRequested();
+
                                 var path = Path.Combine(document.FullPath, document.Name);
                                 if(!File.Exists(path))
                                 {
@@ -169,11 +180,16 @@ namespace DataLayer.Parser
                                 }
                             }
 
+                            token.ThrowIfCancellationRequested();
                             ctx.Documents.RemoveRange(documentsToDelete);
                             ctx.SaveChanges();
 
                             StatisticsModel.Instance.Refresh(StatisticsModelRefreshMethod.UpdateForDocumentMonitor);
                         }
+                    }
+                    catch(OperationCanceledException)
+                    {
+/* ignore */
                     }
                     catch(Exception e)
                     {
@@ -189,7 +205,7 @@ namespace DataLayer.Parser
                         }
                     }
                 }
-            });
+            }, token);
         }
 
         private void ProcessChangeEvents(FileSystemEventArgs arg)
@@ -336,7 +352,7 @@ namespace DataLayer.Parser
             }
         }
 
-        private void ProcessDirectory(string path)
+        private void ProcessDirectory(string path, CancellationToken token)
         {
             if(!Directory.Exists(path))
             {
@@ -350,9 +366,15 @@ namespace DataLayer.Parser
                     ctx.Configuration.AutoDetectChangesEnabled = false;
                     ctx.Configuration.ValidateOnSaveEnabled = false;
 
-                    ProcessFilesInFolder(ctx, path);
+                    ProcessFilesInFolder(ctx, path, token);
+
+                    token.ThrowIfCancellationRequested();
                     ctx.SaveChanges();
                 }
+            }
+            catch(OperationCanceledException)
+            {
+                throw;
             }
             catch(Exception e)
             {
@@ -373,11 +395,12 @@ namespace DataLayer.Parser
             //Parallel.ForEach(directories, s => { ProcessDirectory(Path.GetFullPath(s)); });
             foreach(var s in directories)
             {
-                ProcessDirectory(Path.GetFullPath(s));
+                token.ThrowIfCancellationRequested();
+                ProcessDirectory(Path.GetFullPath(s), token);
             }
         }
 
-        private void ProcessFilesInFolder(DdbContext ctx, string path)
+        private void ProcessFilesInFolder(DdbContext ctx, string path, CancellationToken token)
         {
             string[] filesInDirectory = {};
             try
@@ -392,12 +415,16 @@ namespace DataLayer.Parser
             var docsInDirectory = new List<Document>();
             foreach(var file in filesInDirectory)
             {
+                token.ThrowIfCancellationRequested();
+
                 var docs = ProcessFileInternal(ctx, file);
                 docsInDirectory.AddRange(docs);
             }
 
             if(docsInDirectory.Any())
             {
+                token.ThrowIfCancellationRequested();
+
                 ctx.Documents.AddRange(docsInDirectory);
             }
         }
@@ -461,7 +488,7 @@ namespace DataLayer.Parser
         }
 
         public event EventHandler<DocumentChangedEventArgs> IndexChanged;
-        public event EventHandler NeedUpdate; 
+        public event EventHandler NeedUpdate;
 
         protected virtual void OnIndexChanged(DocumentChangedEventArgs e)
         {
@@ -484,6 +511,16 @@ namespace DataLayer.Parser
         public virtual void OnNeedUpdate()
         {
             if(NeedUpdate != null) NeedUpdate.Invoke(this, EventArgs.Empty);
+        }
+
+        public void Stop()
+        {
+            if(_cts != null)
+            {
+                _cts.Cancel(true);
+                _cts.Dispose();
+                _cts = null;
+            }
         }
     }
 }
