@@ -6,7 +6,6 @@
                     xmlns:model="clr-namespace:DataLayer.Model;assembly=DataLayer"
                     xmlns:mui="http://firstfloorsoftware.com/ModernUI"
                     xmlns:viewModelBase="clr-namespace:DocumentDb.Pages.ViewModel.Base">
-
     <Style x:Key="IconStyle" TargetType="mui:ModernButton">
         <Style.Triggers>
             <DataTrigger Binding="{Binding Type}" Value="{x:Static model:DocumentType.Doc}">
@@ -36,9 +35,15 @@
         </Style.Triggers>
     </Style>
 
-    <DataTemplate x:Key="DocumentItemTemplate" DataType="{x:Type model:Document}">
-        <Grid d:DataContext="{d:DesignInstance model:Document}" d:DesignWidth="583" d:DesignHeight="200">
+    <model:Document x:Key="DocumentDesignData"
+                    Name="Уголовный кодекс. Статья 38. [b]Изнасилование[/b], совершенное группой лиц.docx" Type="Pdf"
+                    DocumentContent="Бла-бла-бла изнасилование [b]каратеся[/b] тремя годами лишения свободы..."
+                    Cached="True" LastEditDateTime="2014-12-23 15:45" />
+
+    <DataTemplate x:Key="SearchDocumentItemTemplate" DataType="{x:Type model:Document}">
+        <Grid d:DataContext="{StaticResource DocumentDesignData}" d:DesignWidth="583" d:DesignHeight="200">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -49,7 +54,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Separator x:Name="ItemSeparator" Grid.ColumnSpan="2" Foreground="{StaticResource Accent}" Margin="3,0" Grid.Row="2" />
+            <Separator x:Name="ItemSeparator" Grid.ColumnSpan="2" Foreground="{StaticResource Accent}" Margin="3,0" Grid.Row="3" />
 
             <mui:ModernButton
                 ToolTip="{Binding Type, Converter={StaticResource TypeDescriptionToString}}"
@@ -61,12 +66,16 @@
                 Grid.Row="0"
                 Grid.Column="0" />
 
-            <TextBlock Grid.Row="0" Grid.Column="1" Margin="6" VerticalAlignment="Center"
+            <mui:BBCodeBlock Grid.Row="0" Grid.Column="1" Margin="6" VerticalAlignment="Center"
                              FontSize="22"
-                             Text="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}, Mode=OneWay}"
+                             BBCode="{Binding Name, Converter={StaticResource FileNameToNameWithoutExtensionConverter}, Mode=OneWay}"
                              TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis" />
 
-            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+            <mui:BBCodeBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BBCode="{Binding DocumentContent}"
+                             Margin="6"
+                             Visibility="{Binding DocumentContent, Converter={StaticResource StringEmptyToVisibility}}" />
+
+            <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
                 <Grid.Resources>
                     <Style TargetType="TextBlock">
                         <Setter Property="Margin" Value="6" />

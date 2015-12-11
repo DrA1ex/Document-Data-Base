@@ -1,6 +1,6 @@
-﻿using System.Linq;
-using System.Windows;
-using DataLayer.Model;
+﻿using System.Windows;
+using System.Windows.Controls;
+using DocumentDb.Common.Extension;
 using DocumentDb.Pages.Model;
 using DocumentDb.Pages.ViewModel;
 
@@ -24,12 +24,29 @@ namespace DocumentDb.Pages
 
         private void TreeView_OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            var folder = e.NewValue as Folder;
+            var folder = e.NewValue != null
+                ? e.NewValue as Folder ?? ViewModel.RootFolder
+                : null;
+
             if(folder != null)
             {
-                DocumentsScrollViewer.ScrollToTop();
-                ViewModel.SetDocuments(folder.Documents.Select(c => c.Id).ToArray());
+                //TODO: Find more elegant way to reset ScrollViewer position after ItemsSource changed
+                if(DocumentsListView.Items.Count > 0)
+                {
+                    var scroll = DocumentsListView.FindVisualChild<ScrollViewer>();
+                    if(scroll != null)
+                    {
+                        scroll.ScrollToTop();
+                    }
+                }
+
+                ViewModel.DocumentsSource = folder.DocumentsSource;
             }
+        }
+
+        private void DocumentsListViewSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            DocumentsListView.SelectedIndex = -1;
         }
     }
 }

@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -28,6 +29,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Common.Logging">
@@ -123,6 +125,7 @@
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Model\Document.cs" />
     <Compile Include="Model\DocumentType.cs" />
+    <Compile Include="Model\IndexChangedEventArgs.cs" />
     <Compile Include="Model\StatisticsModel.cs" />
     <Compile Include="Parser\ContentExtractor.cs" />
     <Compile Include="Parser\ContentExtractors\AudioContentExtractor.cs" />

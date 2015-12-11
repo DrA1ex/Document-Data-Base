@@ -24,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -33,6 +34,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>appIcon.ico</ApplicationIcon>
@@ -90,6 +92,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Common\ApplicationWorkers.cs" />
+    <Compile Include="Common\Extension\VisualTreeExtensions.cs" />
     <Compile Include="Common\Extension\WpfWindowExtensions.cs" />
     <Compile Include="Common\Storage\AppConfigurationStorage.cs" />
     <Compile Include="Common\Storage\DataStorage.cs" />
@@ -105,6 +108,7 @@
     <Compile Include="Converters\StringEmptyToVisibility.cs" />
     <Compile Include="Converters\TypeDescriptionToString.cs" />
     <Compile Include="Pages\Model\Folder.cs" />
+    <Compile Include="Pages\ViewModel\Base\NavigationViewModelBase.cs" />
     <Compile Include="Pages\ViewModel\IndexingViewModel.cs" />
     <Compile Include="Pages\ViewModel\NavigationViewModel.cs" />
     <Compile Include="Pages\Index.xaml.cs">
@@ -140,6 +144,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Assets\Template\DocumentsItemTemplate.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Assets\Template\SearchDocumentsItemTemplate.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -238,9 +246,7 @@
       <Name>DataLayer</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="DataSource\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>

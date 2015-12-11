@@ -14,9 +14,9 @@
     </Style>
 
     <HierarchicalDataTemplate DataType="{x:Type model:Folder}"
-                              ItemsSource="{Binding Folders}">
-        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                   ToolTip="{Binding Name}"
-                   Style="{StaticResource FolderChildrenStyle}" />
+                              ItemsSource="{Binding FoldersSource}">
+        <TextBlock Text="{Binding Name, Mode=OneWay}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                   Style="{StaticResource FolderChildrenStyle}" ToolTip="{Binding Path=FullPath, Mode=OneWay}">
+        </TextBlock>
     </HierarchicalDataTemplate>
 </ResourceDictionary>

@@ -10,7 +10,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/DocumentDb;component/Assets/Template/DocumentsItemTemplate.xaml" />
+                <ResourceDictionary Source="/DocumentDb;component/Assets/Template/SearchDocumentsItemTemplate.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -61,9 +61,21 @@
 
         <Rectangle Grid.Column="1" Fill="{DynamicResource SeparatorBackground}" Width="1" Grid.Row="0" />
 
-        <ScrollViewer x:Name="DocumentScrollViewer" Grid.Row="0" Grid.Column="2" Margin="6" HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemTemplate="{StaticResource DocumentItemTemplate}"
-                          ItemsSource="{Binding Documents}" />
-        </ScrollViewer>
+        <ListView x:Name="DocumentsListView" ItemTemplate="{StaticResource SearchDocumentItemTemplate}" Grid.Row="0" Grid.Column="2" Margin="6"
+                  ItemsSource="{Binding Documents, Mode=OneWay}"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="DocumentsListViewSelectionChanged">
+            <ListView.ItemContainerStyle>
+                <Style BasedOn="{StaticResource {x:Type ListViewItem}}" TargetType="{x:Type ListViewItem}">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type ListViewItem}">
+                                <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListView.ItemContainerStyle>
+        </ListView>
     </Grid>
 </UserControl>

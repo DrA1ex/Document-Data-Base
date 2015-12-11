@@ -17,6 +17,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
@@ -38,7 +40,20 @@
         <TextBlock Grid.Row="1" Grid.Column="0" Text="Монитор документов" />
         <TextBlock Grid.Row="1" Grid.Column="1"
                    Text="{Binding DocumentMonitorState, Converter={StaticResource TypeDescriptionToString}}" />
-        <Button Grid.Row="1" Grid.Column="2" Content="Перестроить индекс" Command="{Binding UpdateIndexCommand}"
+        <WrapPanel Grid.Row="1" Grid.Column="2">
+            <Button Content="Остановить" Command="{Binding StopDocumentMonitorCommand}"
+                Margin="6,3" />
+            <Button Content="Обновить" Command="{Binding UpdateIndexCommand}"
+                Margin="6,3" />
+        </WrapPanel>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Индекс" />
+        <Button Grid.Row="2" Grid.Column="2" Content="Очистить" Command="{Binding ClearIndexCommand, UpdateSourceTrigger=PropertyChanged}"
                 HorizontalAlignment="Left" Margin="6,3" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Полнотекстовый индекс" />
+        <Button Grid.Row="3" Grid.Column="2" Content="Очистить" Command="{Binding ClearFtsIndexCommand}"
+                HorizontalAlignment="Left" Margin="6,3" />
+
     </Grid>
 </UserControl>

@@ -83,7 +83,7 @@ namespace DataLayer.Parser
             while(!ct.IsCancellationRequested)
             {
                 WaitHandle.WaitAny(pauseHandles);
-                SynchronizationContext.Send(state => State = DocumentParserState.Running, null);
+                SynchronizationContext.Post(state => State = DocumentParserState.Running, null);
 
 
                 while(!ct.IsCancellationRequested)
@@ -130,7 +130,7 @@ namespace DataLayer.Parser
                         }
                         catch(OperationCanceledException)
                         {
-                            //Do nothing
+                            //Then nothing
                         }
 
                         try
@@ -147,7 +147,7 @@ namespace DataLayer.Parser
 
                 if(PauseResetEvent.WaitOne(0))
                 {
-                    SynchronizationContext.Send(state => State = DocumentParserState.Idle, null);
+                    SynchronizationContext.Post(state => State = DocumentParserState.Idle, null);
                 }
                 WaitHandle.WaitAny(delayHandles, TimeSpan.FromMinutes(1));
             }
@@ -160,7 +160,7 @@ namespace DataLayer.Parser
                 CancellationTokenSource.Cancel();
                 PauseResetEvent.Set();
 
-                SynchronizationContext.Send(state => State = DocumentParserState.Stopping, null);
+                SynchronizationContext.Post(state => State = DocumentParserState.Stopping, null);
 
                 WorkerTask.ContinueWith(state =>
                                         {
@@ -168,7 +168,7 @@ namespace DataLayer.Parser
                                             CancellationTokenSource.Dispose();
                                             _cancellationTokenSource = null;
 
-                                            SynchronizationContext.Send(c => State = DocumentParserState.Stopped, null);
+                                            SynchronizationContext.Post(c => State = DocumentParserState.Stopped, null);
                                         });
             }
         }
@@ -176,7 +176,7 @@ namespace DataLayer.Parser
         public void Pause()
         {
             PauseResetEvent.Reset();
-            SynchronizationContext.Send(state => State = DocumentParserState.Paused, null);
+            SynchronizationContext.Post(state => State = DocumentParserState.Paused, null);
         }
 
         public void Start()
@@ -184,13 +184,14 @@ namespace DataLayer.Parser
             if(State == DocumentParserState.Paused)
             {
                 PauseResetEvent.Set();
-                SynchronizationContext.Send(state => State = DocumentParserState.Running, null);
+                SynchronizationContext.Post(state => State = DocumentParserState.Idle, null);
             }
             else if(State == DocumentParserState.Stopped)
             {
                 if(WorkerTask == null)
                 {
                     PauseResetEvent.Set();
+                    //TODO: Create Thread or get from ThreadPool. Don't use Task
                     WorkerTask = Task.Run((Action)ParseDocuments, CancellationTokenSource.Token);
                 }
             }

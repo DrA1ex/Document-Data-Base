@@ -92,8 +92,6 @@ namespace DataLayer
             using(var writer = new IndexWriter(Directory, Analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
                 AddToLuceneIndex(documentData, documentContent, writer);
-
-                writer.Dispose();
             }
         }
 
@@ -103,8 +101,6 @@ namespace DataLayer
             {
                 var searchQuery = new TermQuery(new Term("Id", docId.ToString()));
                 writer.DeleteDocuments(searchQuery);
-
-                writer.Dispose();
             }
         }
 
@@ -115,7 +111,6 @@ namespace DataLayer
                 using(var writer = new IndexWriter(Directory, Analyzer, true, IndexWriter.MaxFieldLength.UNLIMITED))
                 {
                     writer.DeleteAll();
-                    writer.Dispose();
                 }
             }
             catch(Exception)
@@ -130,7 +125,6 @@ namespace DataLayer
             using(var writer = new IndexWriter(Directory, Analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
                 writer.Optimize();
-                writer.Dispose();
             }
         }
 
@@ -207,7 +201,6 @@ namespace DataLayer
                 {
                     var hits = searcher.Search(query, hitsLimit).ScoreDocs;
                     var results = MapLuceneToDataList(hits, searcher, highlighter);
-                    searcher.Dispose();
                     return results;
                 }
                 else
@@ -215,7 +208,6 @@ namespace DataLayer
                     var hits = searcher.Search
                         (query, null, hitsLimit, Sort.RELEVANCE).ScoreDocs;
                     var results = MapLuceneToDataList(hits, searcher, highlighter);
-                    searcher.Dispose();
                     return results;
                 }
             }
@@ -247,16 +239,17 @@ namespace DataLayer
                 return new List<DocumentData>();
             }
 
-            var searcher = new IndexSearcher(Directory, false);
-            var reader = IndexReader.Open(Directory, false);
             var docs = new List<Document>();
-            var term = reader.TermDocs();
-            while(term.Next())
+
+            using(var searcher = new IndexSearcher(Directory, false))
+            using(var reader = IndexReader.Open(Directory, false))
             {
-                docs.Add(searcher.Doc(term.Doc));
+                var term = reader.TermDocs();
+                while(term.Next())
+                {
+                    docs.Add(searcher.Doc(term.Doc));
+                }
             }
-            reader.Dispose();
-            searcher.Dispose();
             return MapLuceneToDataList(docs, null);
         }
     }

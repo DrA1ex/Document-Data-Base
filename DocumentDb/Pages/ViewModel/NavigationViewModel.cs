@@ -1,48 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
-using Common;
+using Common.Monad;
+using Common.Utils;
 using DataLayer;
 using DataLayer.Model;
-using DataLayer.Parser;
 using DocumentDb.Common;
 using DocumentDb.Common.Storage;
 using DocumentDb.Pages.Model;
-using FirstFloor.ModernUI.Presentation;
+using DocumentDb.Pages.ViewModel.Base;
 using FirstFloor.ModernUI.Windows.Controls;
 
 namespace DocumentDb.Pages.ViewModel
 {
-    public class NavigationViewModel : NotifyPropertyChanged
+    public sealed class NavigationViewModel : NavigationViewModelBase
     {
-        private CancellationTokenSource _cts;
-        private ObservableCollection<Document> _documents;
-        private bool _documentsIsLoading;
-        private ObservableCollection<Folder> _folders;
-        private bool _folderTreeIsLoading;
-        private ICommand _openFileCommand;
-        private SynchronizationContext _synchronizationContext;
         private readonly object _syncDummy = new object();
+        private ICollectionView _documentsSource;
+        private bool _documentsIsLoading;
+        private bool _folderTreeIsLoading;
+        private Folder _rootFolder;
 
         public NavigationViewModel()
         {
-            ApplicationWorkers.DirectoryMonitor.PropertyChanged += (sender, args) =>
-                                                                   {
-                                                                       if(args.PropertyName == "State")
-                                                                       {
-                                                                           if(ApplicationWorkers.DirectoryMonitor.State == DocumentMonitorState.Idle)
-                                                                           {
-                                                                               Refresh();
-                                                                           }
-                                                                       }
-                                                                   };
+            ApplicationWorkers.DirectoryMonitor.IndexChanged += DirectoryMonitorOnIndexChanged;
+            ApplicationWorkers.DirectoryMonitor.NeedUpdate += ClearData;
 
             Refresh();
         }
@@ -53,7 +40,7 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _folderTreeIsLoading = value;
-                OnPropertyChanged("FolderTreeIsLoading");
+                OnPropertyChanged();
             }
         }
 
@@ -63,7 +50,7 @@ namespace DocumentDb.Pages.ViewModel
             set
             {
                 _documentsIsLoading = value;
-                OnPropertyChanged("DocumentsIsLoading");
+                OnPropertyChanged();
             }
         }
 
@@ -72,97 +59,38 @@ namespace DocumentDb.Pages.ViewModel
             get
             {
                 var catalogPath = AppConfigurationStorage.Storage.CatalogPath;
-                if(!String.IsNullOrWhiteSpace(catalogPath))
+                if(!string.IsNullOrWhiteSpace(catalogPath))
                 {
-                    return String.Format("Коллекция \"{0}\"", catalogPath.Split(Path.DirectorySeparatorChar).Last());
+                    return string.Format("Коллекция \"{0}\"", catalogPath.Split(Path.DirectorySeparatorChar).Last());
                 }
 
                 return "Каталог не выбран";
             }
         }
 
-        public SynchronizationContext SynchronizationContext
+        public Folder RootFolder
         {
-            get { return _synchronizationContext ?? (_synchronizationContext = SynchronizationContext.Current ?? new SynchronizationContext()); }
-        }
-
-        public ObservableCollection<Folder> Folders
-        {
-            get { return _folders ?? (_folders = new ObservableCollection<Folder>()); }
-        }
-
-        public ObservableCollection<Document> Documents
-        {
-            get { return _documents ?? (_documents = new ObservableCollection<Document>()); }
-        }
-
-        public ICommand OpenFileCommand
-        {
-            get { return _openFileCommand ?? (_openFileCommand = new DelegateCommand<Document>(OpenFile)); }
-        }
-
-        public void SetDocuments(long[] documentsId)
-        {
-            if(_cts != null)
+            get { return _rootFolder; }
+            set
             {
-                _cts.Cancel();
+                _rootFolder = value;
+                OnPropertyChanged();
             }
-
-            SynchronizationContext.Send(c => DocumentsIsLoading = true, null);
-
-            lock(_syncDummy)
-            {
-                if(_cts != null)
-                {
-                    _cts.Dispose();
-                }
-                _cts = new CancellationTokenSource();
-            }
-
-            Task.Run(() =>
-                     {
-                         lock(_syncDummy)
-                         {
-                             SynchronizationContext.Send(c => _documents.Clear(), null);
-                             var token = _cts.Token;
-
-                             try
-                             {
-                                 using(var ctx = new DdbContext())
-                                 {
-                                     var documents = ctx.Documents.Where(c => documentsId.Contains(c.Id));
-                                     var docsEnumerated = AppConfigurationStorage.Storage.IndexUnsupportedFormats
-                                         ? documents
-                                         : documents.Where(c => c.Type != DocumentType.Undefined);
-
-
-                                     foreach(var document in docsEnumerated)
-                                     {
-                                         if(!token.IsCancellationRequested)
-                                         {
-                                             SynchronizationContext.Send(c => _documents.Add((Document)c), document);
-                                         }
-                                         else
-                                         {
-                                             break;
-                                         }
-                                     }
-                                 }
-                             }
-                             finally
-                             {
-                                 if(!token.IsCancellationRequested)
-                                 {
-                                     SynchronizationContext.Post(c => OnPropertyChanged("Documents"), null);
-                                     SynchronizationContext.Post(c => OnPropertyChanged("CollectionName"), null);
-                                     SynchronizationContext.Post(c => DocumentsIsLoading = false, null);
-                                 }
-                             }
-                         }
-                     }, _cts.Token);
         }
 
-        private void OpenFile(Document doc)
+        private IDictionary<string, Folder> SearchMap { get; set; }
+
+        public ICollectionView DocumentsSource
+        {
+            get { return _documentsSource; }
+            set
+            {
+                _documentsSource = value;
+                OnPropertyChanged();
+            }
+        }        
+
+        protected override void OpenFile(Document doc)
         {
             var fileToOpen = Path.Combine(doc.FullPath, doc.Name);
 
@@ -172,9 +100,19 @@ namespace DocumentDb.Pages.ViewModel
             }
             catch(Exception e)
             {
-                ModernDialog.ShowMessage(String.Format("Не удалось открыть файл '{0}'. Причина: {1}", fileToOpen, e.Message)
+                ModernDialog.ShowMessage(string.Format("Не удалось открыть файл '{0}'. Причина: {1}", fileToOpen, e.Message)
                     , "Ошибка открытия файла", MessageBoxButton.OK, Application.Current.MainWindow);
             }
+        }
+
+
+        private void ClearData(object sender, EventArgs e)
+        {
+            RootFolder = null;
+            SearchMap = null;
+            DocumentsSource = null;
+
+            Refresh();
         }
 
         public void Refresh()
@@ -184,31 +122,47 @@ namespace DocumentDb.Pages.ViewModel
                 return;
             }
 
-            SynchronizationContext.Send(c => FolderTreeIsLoading = true, null);
+            if(RootFolder == null && AppConfigurationStorage.Storage.CatalogPath != null)
+            {
+                if(SearchMap == null)
+                {
+                    SearchMap = new Dictionary<string, Folder>();
+                }
 
+                RootFolder = new Folder {FullPath = AppConfigurationStorage.Storage.CatalogPath};
+                SearchMap.Add(RootFolder.FullPath, RootFolder);
+            }
+
+            SynchronizationContext.Post(c => FolderTreeIsLoading = true, null);
 
             Task.Run(() =>
-                     {
-                         try
-                         {
-                             SynchronizationContext.Send(c => Folders.Clear(), null);
-
-                             var folders = BuildFolderTree();
-                             foreach(var folder in folders)
-                             {
-                                 SynchronizationContext.Send(c => Folders.Add(c as Folder), folder);
-                             }
-                         }
-                         finally
-                         {
-                             SynchronizationContext.Send(c => FolderTreeIsLoading = false, null);
-                         }
-                     });
+            {
+                lock(_syncDummy)
+                {
+                    try
+                    {
+                        var searchMap = new Dictionary<string, Folder>();
+                        var folder = BuildFolderTree(searchMap);
+                        if(folder != null)
+                        {
+                            SynchronizationContext.Send(f => RootFolder = folder, folder);
+                            SynchronizationContext.Send(s => SearchMap = s, searchMap);
+                        }
+                    }
+                    finally
+                    {
+                        SynchronizationContext.Post(c => OnPropertyChanged("CollectionName"), null);
+                        SynchronizationContext.Post(c => FolderTreeIsLoading = false, null);
+                    }
+                }
+            });
         }
 
-        public IEnumerable<Folder> BuildFolderTree()
+        public Folder BuildFolderTree(IDictionary<string, Folder> searchMap)
         {
             var baseCatalog = AppConfigurationStorage.Storage.CatalogPath;
+            if(String.IsNullOrEmpty(baseCatalog))
+                return null;
 
             Document[] docs;
             using(var ctx = new DdbContext())
@@ -218,80 +172,168 @@ namespace DocumentDb.Pages.ViewModel
                     .OrderBy(c => c.FullPath).ToArray();
             }
 
-            var folders = new List<Folder>();
-
             if(docs.Any())
             {
-                var searchMap = new Dictionary<string, Folder>();
                 foreach(var document in docs)
                 {
-                    var folder = GetFolder(folders, searchMap, baseCatalog, document.FullPath);
+                    var folder = GetOrCreateFolder(searchMap, baseCatalog, document.FullPath)
+                        .Get();
                     folder.Documents.Add(document);
                 }
             }
 
-            return folders;
+            return searchMap[baseCatalog];
         }
 
-        private Folder GetFolder(List<Folder> folders, IDictionary<string, Folder> searchMap, string basePath, string path)
+        private void DirectoryMonitorOnIndexChanged(object sender, DocumentChangedEventArgs args)
         {
-            if(searchMap.ContainsKey(path))
+            if(SearchMap != null && RootFolder != null)
             {
-                var existingFolder = searchMap[path];
-                return existingFolder;
+                var movedEventArgs = args as DocumentMovedEventArgs;
+                var docToFind = movedEventArgs != null ? movedEventArgs.OldDocument : args.Document;
+                switch(args.Kind)
+                {
+                    case IndexChangeKind.New:
+                        GetOrCreateFolder(docToFind.FullPath)
+                            .Then(folder => AddDocument(args.Document));
+                        break;
+
+                    case IndexChangeKind.Updated:
+                        UpdateDocument(args.Document);
+                        break;
+
+                    case IndexChangeKind.Removed:
+                        FindFolder(docToFind.FullPath)
+                            .Then(folder => RemoveDocument(folder, docToFind.Name));
+                        break;
+
+                    case IndexChangeKind.Moved:
+                        if(docToFind.FullPath != args.Document.FullPath)
+                        {
+                            FindFolder(docToFind.FullPath)
+                                .Then(folder => RemoveDocument(folder, docToFind.Name))
+                                .Always(() => AddDocument(args.Document));
+                        }
+                        else
+                        {
+                            RenameDocument(docToFind, args.Document);
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private Optional<Folder> FindFolder(string fullPath)
+        {
+            return SearchMap.TryGet(fullPath);
+        }
+
+        private Optional<Folder> GetOrCreateFolder(string fullPath)
+        {
+            return GetOrCreateFolder(SearchMap, RootFolder.FullPath, fullPath);
+        }
+
+        private Optional<Folder> GetOrCreateFolder(IDictionary<string, Folder> searchMap, string basePath, string fullPath)
+        {
+            return searchMap.TryGet(fullPath)
+                .OrElseGet(() =>
+                {
+                    var parts = fullPath
+                        .Replace(basePath, "")
+                        .TrimStart(Path.DirectorySeparatorChar)
+                        .Split(Path.DirectorySeparatorChar);
+
+                    var lastFolder = searchMap.GetOrCreate(basePath, () => new Folder
+                    {
+                        FullPath = basePath,
+                        Name = Path.GetFileName(basePath)
+                    });
+
+                    foreach(var part in parts)
+                    {
+                        var currentPath = Path.Combine(lastFolder.FullPath, part);
+
+                        var lambdaPart = part;
+                        var lambdaLastFolder = lastFolder;
+
+                        searchMap.TryGet(currentPath)
+                            .Otherwise(() =>
+                            {
+                                var newFolder = new Folder {FullPath = currentPath, Name = lambdaPart};
+                                searchMap[currentPath] = newFolder;
+
+                                lambdaLastFolder.Folders.Add(newFolder);
+                            });
+
+                        lastFolder = searchMap[currentPath];
+                    }
+
+                    return lastFolder;
+                });
+        }
+
+        private void RemoveDocument(Folder folder, string name)
+        {
+            folder.Documents.Get(c => c.Name == name)
+                .ThenGet(doc => folder.Documents.Remove(doc))
+                .ThenIf(!folder.HasChildren, () => RemoveFolderTreeIfEmpty(folder));
+        }
+
+        private void AddDocument(Document document)
+        {
+            GetOrCreateFolder(document.FullPath)
+                .Then(f => f.Documents.Get(d => d.Name == document.Name)
+                    .Otherwise(() => f.Documents.Add(document)));
+        }
+
+        private void UpdateDocument(Document document)
+        {
+            GetOrCreateFolder(document.FullPath)
+                .Then(f => f.Documents.Get(d => d.Name == document.Name)
+                    .Then(d =>
+                    {
+                        d.Cached = document.Cached;
+                        d.LastEditDateTime = document.LastEditDateTime;
+                    })
+                    .Otherwise(() => AddDocument(document)));
+        }
+
+        private void RenameDocument(Document original, Document changed)
+        {
+            FindFolder(original.FullPath)
+                .Then(folder => folder.Documents.Get(c => c.Name == original.Name)
+                    .Then(doc => { doc.Name = changed.Name; }))
+                .Otherwise(() => AddDocument(changed));
+        }
+
+        private Optional<Folder> GetParentFolder(Folder folder)
+        {
+            var parentParts = folder.FullPath
+                .Split(Path.DirectorySeparatorChar)
+                .Reverse()
+                .Skip(1)
+                .Reverse().ToArray();
+            if(parentParts.Any())
+            {
+                var parentPath = string.Join(Path.DirectorySeparatorChar.ToString(), parentParts);
+                return SearchMap.TryGet(parentPath);
             }
 
-            var parts = path
-                .Replace(basePath, "")
-                .TrimStart(Path.DirectorySeparatorChar)
-                .Split(Path.DirectorySeparatorChar);
+            return Optional<Folder>.Empty();
+        }
 
-            Folder lastFolder = null;
-            foreach(var part in parts)
+        private void RemoveFolderTreeIfEmpty(Folder folder)
+        {
+            if(!folder.HasChildren)
             {
-                var fullPath = Path.Combine(lastFolder != null ? lastFolder.FullPath : basePath, part);
+                SearchMap.TryGet(folder.FullPath)
+                    .Then(() => SearchMap.Remove(folder.FullPath));
 
-                Folder folder;
-                if(searchMap.ContainsKey(fullPath))
-                {
-                    folder = searchMap[fullPath];
-                }
-                else if(lastFolder != null)
-                {
-                    folder = lastFolder.Folders.SingleOrDefault(c => c.Name == part);
-                }
-                else
-                {
-                    folder = folders.SingleOrDefault(c => c.Name == part);
-                }
-
-
-                if(folder == null)
-                {
-                    folder = new Folder
-                             {
-                                 Name = part,
-                                 FullPath = fullPath,
-                                 Folders = new List<Folder>(),
-                                 Documents = new List<Document>()
-                             };
-
-                    searchMap.Add(folder.FullPath, folder);
-
-                    if(lastFolder != null)
-                    {
-                        lastFolder.Folders.Add(folder);
-                    }
-                    else
-                    {
-                        folders.Add(folder);
-                    }
-                }
-
-                lastFolder = folder;
+                GetParentFolder(folder)
+                    .Then(parent => parent.Folders.Remove(folder))
+                    .ThenIf(parent => !parent.HasChildren, RemoveFolderTreeIfEmpty);
             }
-
-            return lastFolder;
         }
     }
 }
